@@ -63,9 +63,15 @@
  Idea sources
  https://en.wikipedia.org/wiki/Mob_(video_gaming)
  
+ Help from tenplus1 https://github.com/tenplus1/mobs_redo/blob/master/api.lua
+ 
+ Help from pilzadam https://github.com/PilzAdam/mobs/blob/master/api.lua
+ 
  --notes on how to create mobs
  the height will divide by 2 to find the height, make your mob mesh centered in the editor to fit centered in the collisionbox
  This is done to use the actual center of mobs in functions, same with width
+ 
+ 
  
  ]]--
 
@@ -76,17 +82,17 @@ open_ai.register_mob = function(name,def)
 	minetest.register_entity(name, {
 		--Do simpler definition variables for ease of use
 		collisionbox = {-def.width/2,-def.height/2,-def.width/2,def.width/2,def.height/2,def.width/2},
-		height = def.height,
-		width  = def.width,
+		height       = def.height,
+		width        = def.width,
 		physical     = def.physical,
 		max_velocity = def.max_velocity,
 		acceleration = def.acceleration,
 		
-		automatic_face_movement_dir = -90.0,
+		automatic_face_movement_dir = def.automatic_face_movement_dir, --for smoothness
 		
 		--Aesthetic variables
-		visual = def.visual,
-		mesh   = def.mesh,
+		visual   = def.visual,
+		mesh     = def.mesh,
 		textures = def.textures,
 		
 		--Behavioral variables
@@ -97,13 +103,13 @@ open_ai.register_mob = function(name,def)
 		
 		--Physical variables
 		old_position = nil,
-		jump         = false,
+		yaw          = 0,
+		jump_height = def.jump_height,
 		
 		
 		
 		
-		
-		
+		--what mobs do when created
 		on_activate = function(self, staticdata, dtime_s)
 			--debug for movement
 			self.goal = {x=math.random(-self.max_velocity,self.max_velocity),y=math.random(-self.max_velocity,self.max_velocity),z=math.random(-self.max_velocity,self.max_velocity)}
@@ -114,23 +120,75 @@ open_ai.register_mob = function(name,def)
 			self.old_position = vector.floor(pos)
 			
 		end,
+		
+		
 		--decide wether an entity should jump or change direction
-		jump = function(self,vel,pos)
-			local node = minetest.get_node({x=pos.x+(vel.x*1.5),y=pos.y,z=pos.z+(vel.z*1.5)}).name
-			if minetest.registered_nodes[node].walkable == true then
-				self.object:setvelocity({x=vel.x,y=4,z=vel.z})
-				print("jumped!")
+		jump = function(self)
+			
+			local pos = self.object:getpos()
+			local vel = self.object:getvelocity()
+			local vel2 = {x=0,y=0,z=0}
+			
+			
+			local yaw = (math.atan(vel.z / vel.x) + math.pi / 2)
+			
+			--don't check if not moving instead change direction
+			if yaw == yaw then --check for nan
+				if vel.x > vel2.x then
+					yaw = yaw + math.pi
+				end
+				--turn it into usable position modifier
+				local x = (math.sin(yaw) * -1)*1.5
+				local z = (math.cos(yaw))*1.5
+				
+				local node = minetest.get_node({x=pos.x+x,y=pos.y,z=pos.z+z}).name
+				if minetest.registered_nodes[node].walkable == true then
+					print("jump")
+					self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
+				end			
 			end
+
 		end,
 		
+		--this runs everything that happens when a mob enters a new node
+		update = function(self)
+			self.jump(self)
+		end,
+		
+		
+		--what mobs do on each server step
 		on_step = function(self,dtime)
 			self.behavior_timer = self.behavior_timer + dtime
 			local vel = self.object:getvelocity()
 			local pos = self.object:getpos()
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			--debug to find node the mob exists in
 			local testpos = self.object:getpos()
-			testpos.y = testpos.y - (self.height/2) -- the bottom of the entity
+			testpos.y = testpos.y-- - (self.height/2) -- the bottom of the entity
 			local vec_pos = vector.floor(testpos) -- the node that the mob exists in
 			
 			
@@ -139,9 +197,8 @@ open_ai.register_mob = function(name,def)
 			vec_pos.y ~= self.old_position.y or
 			vec_pos.z ~= self.old_position.z then
 				self.old_position = vec_pos
-				--self.jump(self,vel,pos)
+				self.update(self)
 			end
-			
 			
 			
 			--local test_output = minetest.get_node({x=pos.x + vel.x, y = pos.y,z = pos.z + vel.z}).name
@@ -173,9 +230,10 @@ end
 --this is a test mob which can be used to learn how to make mobs using open ai - uses pilzadam's sheep mesh
 open_ai.register_mob("open_ai:test",{
 	--mob physical variables
-	height = 1, --divide by 2 for even height
-	width  = 1, --divide by 2 for even width
+	height = 0.7, --divide by 2 for even height
+	width  = 0.7, --divide by 2 for even width
 	physical = true, --if the mob collides with the world, false is useful for ghosts
+	jump_height = 5, --how high a mob will jump
 	
 	--mob movement variables
 	max_velocity = 3, --set the max velocity that a mob can move
@@ -188,11 +246,11 @@ open_ai.register_mob("open_ai:test",{
 	mesh = "mobs_sheep.x",
 	textures = {"mobs_sheep.png"},
 	animation = { --the animation keyframes and speed
-		speed_normal = 15,
-		stand_start = 0,
+		speed_normal = 15,--animation speed
+		stand_start = 0,--standing animation start and end
 		stand_end = 80,
-		walk_start = 81,
+		walk_start = 81,--walking animation start and end
 		walk_end = 100,
 	},
-	
+	automatic_face_movement_dir = -90.0, --what direction the mob faces in
 })
