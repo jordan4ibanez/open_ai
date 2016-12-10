@@ -86,6 +86,9 @@ open_ai.register_mob = function(name,def)
 		visual   = def.visual,
 		mesh     = def.mesh,
 		textures = def.textures,
+		makes_footstep_sound = def.makes_footstep_sound,
+		animation = def.animation,
+		
 		
 		--Behavioral variables
 		behavior_timer      = 0, --when this reaches behavior change goal, it changes states and resets
@@ -175,14 +178,25 @@ open_ai.register_mob = function(name,def)
 			end		
 		end,
 		
+		set_animation = function(self)
+			local vel = self.object:getvelocity()
+			local speed = (math.abs(vel.x)+math.abs(vel.z))*self.animation.speed_normal --check this
+			
+			self.object:set_animation({x=self.animation.walk_start,y=self.animation.walk_end}, speed, 0, true)
+
+		
+		end,
 		
 		--what mobs do on each server step
 		on_step = function(self,dtime)
+			
 			self.behavior(self,dtime)
+			
 			--move mob to goal velocity using acceleration for smoothness
 			local vel = self.object:getvelocity()
 			self.object:setacceleration({x=(self.goal.x - vel.x)*self.acceleration,y=-10,z=(self.goal.z - vel.z)*self.acceleration})
 			
+			self.set_animation(self)
 		end,
 		
 		
@@ -212,11 +226,12 @@ open_ai.register_mob("open_ai:test",{
 	mesh = "mobs_sheep.x",
 	textures = {"mobs_sheep.png"},
 	animation = { --the animation keyframes and speed
-		speed_normal = 15,--animation speed
+		speed_normal = 10,--animation speed
 		stand_start = 0,--standing animation start and end
 		stand_end = 80,
 		walk_start = 81,--walking animation start and end
 		walk_end = 100,
 	},
 	automatic_face_movement_dir = -90.0, --what direction the mob faces in
+	makes_footstep_sound = true, --if a mob makes footstep sounds
 })
