@@ -6,6 +6,14 @@
  
  0.) only check nodes using voxelmanip when in new floored position
  
+ 0.) minetest.line_of_sight(pos1, pos2, stepsize) to check if a mob sees player
+ 
+ 0.) minetest.find_path(pos1,pos2,searchdistance,max_jump,max_drop,algorithm)
+ 0.) do pathfinding by setting yaw towards the next point in the table
+ 0.) only run this function if the goal entity/player is in a new node to prevent extreme lag
+ 
+ 0.) reliably jump by opening voxel manip in the direction the mob is heading when in new node, and checking for node in front
+ 
  0.) do vector.floor to find position and see if it's in old position
  
  0.) use setacceleration and a goal velocity, and a mob acceleration var to config how fast a mob gets up to it's max speed
@@ -68,15 +76,31 @@ open_ai.register_mob = function(name,def)
 	minetest.register_entity(name, {
 		--Do simpler definition variables for ease of use
 		collisionbox = {-def.width/2,-def.height/2,-def.width/2,def.width/2,def.height/2,def.width/2},
+		height = def.height,
+		width  = def.width,
 		physical     = def.physical,
 		max_velocity = def.max_velocity,
 		acceleration = def.acceleration,
 		
+		automatic_face_movement_dir = -90.0,
+		
+		--Aesthetic variables
+		visual = def.visual,
+		mesh   = def.mesh,
+		textures = def.textures,
+		
 		--Behavioral variables
-		behavior_timer = 0, --when this reaches behavior change goal, it changes states and resets
-		behavior_timer_goal = 0,
+		behavior_timer      = 0, --when this reaches behavior change goal, it changes states and resets
+		behavior_timer_goal = 0, --randomly selects between min and max time to change direction
 		behavior_change_min = def.behavior_change_min,
 		behavior_change_max = def.behavior_change_max,
+		
+		--Physical variables
+		old_position = nil,
+		jump         = false,
+		
+		
+		
 		
 		
 		
@@ -85,9 +109,38 @@ open_ai.register_mob = function(name,def)
 			self.goal = {x=math.random(-self.max_velocity,self.max_velocity),y=math.random(-self.max_velocity,self.max_velocity),z=math.random(-self.max_velocity,self.max_velocity)}
 			self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
 			
+			local pos = self.object:getpos()
+			pos.y = pos.y - (self.height/2) -- the bottom of the entity
+			self.old_position = vector.floor(pos)
+			
 		end,
+		
 		on_step = function(self,dtime)
 			self.behavior_timer = self.behavior_timer + dtime
+			local vel = self.object:getvelocity()
+			local pos = self.object:getpos()
+			
+			--debug to find node the mob exists in
+			local testpos = self.object:getpos()
+			testpos.y = testpos.y - (self.height/2) -- the bottom of the entity
+			local vec_pos = vector.floor(testpos) -- the node that the mob exists in
+			
+			
+			--update the node it exists in if changed
+			if vec_pos.x ~= self.old_position.x or
+			vec_pos.y ~= self.old_position.y or
+			vec_pos.z ~= self.old_position.z then
+				self.old_position = vec_pos
+			end
+			
+			
+			
+			--local test_output = minetest.get_node({x=pos.x + vel.x, y = pos.y,z = pos.z + vel.z}).name
+			
+			--print(test_output)
+			
+			
+			
 			
 			--debug test to change behavior
 			if self.behavior_timer >= self.behavior_timer_goal then
@@ -95,20 +148,23 @@ open_ai.register_mob = function(name,def)
 				self.goal = {x=math.random(-self.max_velocity,self.max_velocity),y=math.random(-self.max_velocity,self.max_velocity),z=math.random(-self.max_velocity,self.max_velocity)}
 				self.behavior_timer = 0
 			end
-			
-					
-			local vel = self.object:getvelocity()
 			--move mob to goal velocity using acceleration for smoothness
 			self.object:setacceleration({x=(self.goal.x - vel.x)*self.acceleration,y=-10,z=(self.goal.z - vel.z)*self.acceleration})
 			
 		end,
+		
+		
+		
+		
+		
+		
 	})
 end
 
---this is a test mob which can be used to learn how to make mobs using open ai
+--this is a test mob which can be used to learn how to make mobs using open ai - uses pilzadam's sheep mesh
 open_ai.register_mob("open_ai:test",{
 	--mob physical variables
-	height = 2, --divide by 2 for even height
+	height = 1, --divide by 2 for even height
 	width  = 1, --divide by 2 for even width
 	physical = true, --if the mob collides with the world, false is useful for ghosts
 	
@@ -117,5 +173,17 @@ open_ai.register_mob("open_ai:test",{
 	acceleration = 3, --how quickly a mob gets up to max velocity
 	behavior_change_min = 3, -- the minimum time a mob will wait to change it's behavior
 	behavior_change_max = 5, -- the max time a mob will wait to change it's behavior
+	
+	--mob aesthetic variables
+	visual = "mesh", --can be changed to anything for flexibility
+	mesh = "mobs_sheep.x",
+	textures = {"mobs_sheep.png"},
+	animation = { --the animation keyframes and speed
+		speed_normal = 15,
+		stand_start = 0,
+		stand_end = 80,
+		walk_start = 81,
+		walk_end = 100,
+	},
 	
 })
