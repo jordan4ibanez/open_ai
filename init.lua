@@ -114,6 +114,14 @@ open_ai.register_mob = function(name,def)
 			self.old_position = vector.floor(pos)
 			
 		end,
+		--decide wether an entity should jump or change direction
+		jump = function(self,vel,pos)
+			local node = minetest.get_node({x=pos.x+(vel.x*1.5),y=pos.y,z=pos.z+(vel.z*1.5)}).name
+			if minetest.registered_nodes[node].walkable == true then
+				self.object:setvelocity({x=vel.x,y=4,z=vel.z})
+				print("jumped!")
+			end
+		end,
 		
 		on_step = function(self,dtime)
 			self.behavior_timer = self.behavior_timer + dtime
@@ -126,11 +134,12 @@ open_ai.register_mob = function(name,def)
 			local vec_pos = vector.floor(testpos) -- the node that the mob exists in
 			
 			
-			--update the node it exists in if changed
+			--update the node it exists in if changed - also do jump function to find if jumping is needed
 			if vec_pos.x ~= self.old_position.x or
 			vec_pos.y ~= self.old_position.y or
 			vec_pos.z ~= self.old_position.z then
 				self.old_position = vec_pos
+				--self.jump(self,vel,pos)
 			end
 			
 			
