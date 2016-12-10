@@ -11,15 +11,7 @@
  0.) minetest.find_path(pos1,pos2,searchdistance,max_jump,max_drop,algorithm)
  0.) do pathfinding by setting yaw towards the next point in the table
  0.) only run this function if the goal entity/player is in a new node to prevent extreme lag
- 
- 0.) reliably jump by opening voxel manip in the direction the mob is heading when in new node, and checking for node in front
- 
- 0.) do vector.floor to find position and see if it's in old position
- 
- 0.) use setacceleration and a goal velocity, and a mob acceleration var to config how fast a mob gets up to it's max speed
- 
- 0.) do smooth turning
- 
+     
  0.) when mob gets below 0.1 velocity do set velocity to make it stand still ONCE so mobs don't float and set acceleration to 0
  
  1.) lightweight ai that walks around, stands, does something like eat grass
@@ -156,35 +148,10 @@ open_ai.register_mob = function(name,def)
 		end,
 		
 		
-		--what mobs do on each server step
-		on_step = function(self,dtime)
+		behavior = function(self,dtime)
 			self.behavior_timer = self.behavior_timer + dtime
 			local vel = self.object:getvelocity()
-			local pos = self.object:getpos()
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
 
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
 			
 			--debug to find node the mob exists in
 			local testpos = self.object:getpos()
@@ -199,22 +166,21 @@ open_ai.register_mob = function(name,def)
 				self.old_position = vec_pos
 				self.update(self)
 			end
-			
-			
-			--local test_output = minetest.get_node({x=pos.x + vel.x, y = pos.y,z = pos.z + vel.z}).name
-			
-			--print(test_output)
-			
-			
-			
-			
+					
 			--debug test to change behavior
 			if self.behavior_timer >= self.behavior_timer_goal then
 				print("Changed direction")
 				self.goal = {x=math.random(-self.max_velocity,self.max_velocity),y=math.random(-self.max_velocity,self.max_velocity),z=math.random(-self.max_velocity,self.max_velocity)}
 				self.behavior_timer = 0
-			end
+			end		
+		end,
+		
+		
+		--what mobs do on each server step
+		on_step = function(self,dtime)
+			self.behavior(self,dtime)
 			--move mob to goal velocity using acceleration for smoothness
+			local vel = self.object:getvelocity()
 			self.object:setacceleration({x=(self.goal.x - vel.x)*self.acceleration,y=-10,z=(self.goal.z - vel.z)*self.acceleration})
 			
 		end,
