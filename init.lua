@@ -139,7 +139,7 @@ open_ai.register_mob = function(name,def)
 			local under_node = minetest.get_node({x=pos.x,y=pos.y-(self.height/2)-0.1,z=pos.z}).name
 			
 			if minetest.registered_nodes[under_node].walkable == false then
-				print("JUMP FAILURE")
+				--print("JUMP FAILURE")
 				return
 			end
 			
@@ -245,12 +245,9 @@ open_ai.register_mob = function(name,def)
 			
 			
 			
-			if path ~= nil then
-				self.path = path
-				--print("set path!")
-			else
-				--print(self.path[1])
-			end
+
+			self.path = path
+
 			
 			
 			
