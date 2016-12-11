@@ -244,15 +244,12 @@ open_ai.register_mob = function(name,def)
 			end
 			
 			
-			
-
-			self.path = path
-
-			
+		
 			
 			
 			--debug pathfinding
-			if table.getn(self.path) > 2 then
+			if path and table.getn(path) > 2 then
+				self.path = path
 				--print("going to player")
 				
 				local pos3 = self.path[2]
