@@ -222,13 +222,23 @@ open_ai.register_mob = function(name,def)
 			local pos1 = self.object:getpos()
 			local pos2 = minetest.get_player_by_name(self.target):getpos() -- this is the goal debug
 						
-			local path = minetest.find_path(pos1,pos2,5,1,3,"A*_noprefetch")
+			local path = minetest.find_path(pos1,pos2,5,1,3,"Dijkstra")
 			
 			--Debug to visualize mob paths
 			if table.getn(self.path) > 0 then
 				
 			
 				for _,pos in pairs(self.path) do
+					minetest.add_particle({
+					pos = pos,
+					velocity = {x=0, y=0, z=0},
+					acceleration = {x=0, y=0, z=0},
+					expirationtime = 0.5,
+					size = 4,
+					collisiondetection = false,
+					vertical = false,
+					texture = "heart.png",
+					})
 					
 				end
 			end
