@@ -11,6 +11,10 @@
  0.) minetest.find_path(pos1,pos2,searchdistance,max_jump,max_drop,algorithm)
  0.) do pathfinding by setting yaw towards the next point in the table
  0.) only run this function if the goal entity/player is in a new node to prevent extreme lag
+ 
+ 0.) Health
+ 
+ 0.) running particles
      
  0.) when mob gets below 0.1 velocity do set velocity to make it stand still ONCE so mobs don't float and set acceleration to 0
  
@@ -104,19 +108,22 @@ open_ai.register_mob = function(name,def)
 		
 		--Pathfinding variables
 		path = {},
-		goal = "singleplayer",
+		target = "singleplayer",
 		
 		
 		
 		--what mobs do when created
 		on_activate = function(self, staticdata, dtime_s)
 			--debug for movement
-			self.goal = {x=math.random(-self.max_velocity,self.max_velocity),y=math.random(-self.max_velocity,self.max_velocity),z=math.random(-self.max_velocity,self.max_velocity)}
+			self.velocity = math.random(1,self.max_velocity)+math.random()
+			
 			self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
 			
 			local pos = self.object:getpos()
 			pos.y = pos.y - (self.height/2) -- the bottom of the entity
 			self.old_position = vector.floor(pos)
+			
+			self.yaw = (math.random(0, 360)/360) * (math.pi*2)
 			
 		end,
 		
@@ -126,23 +133,31 @@ open_ai.register_mob = function(name,def)
 			
 			local pos = self.object:getpos()
 			local vel = self.object:getvelocity()
-			local vel2 = {x=0,y=0,z=0}
 			
-			
-			local yaw = (math.atan(vel.z / vel.x) + math.pi / 2)
-			
+			--commented out section is to use vel to get yaw dir, hence redeffing it as local yaw verus self.yaw
+			local yaw = self.yaw--(math.atan(vel.z / vel.x) + math.pi / 2)
+						
 			--don't check if not moving instead change direction
 			if yaw == yaw then --check for nan
-				if vel.x > vel2.x then
-					yaw = yaw + math.pi
-				end
 				--turn it into usable position modifier
 				local x = (math.sin(yaw) * -1)*1.5
 				local z = (math.cos(yaw))*1.5
-				
+				--[[ uncomment this to see where mobs check for obstacles
+				minetest.add_particle({
+					pos = {x=pos.x+x,y=pos.y,z=pos.z+z},
+					velocity = {x=0, y=0, z=0},
+					acceleration = {x=0, y=0, z=0},
+					expirationtime = 1,
+					size = 3,
+					collisiondetection = false,
+					vertical = false,
+					texture = "heart.png",
+					playername = "singleplayer"
+				})
+				]]--
 				local node = minetest.get_node({x=pos.x+x,y=pos.y,z=pos.z+z}).name
 				if minetest.registered_nodes[node].walkable == true then
-					print("jump")
+					--print("jump")
 					self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
 				end			
 			end
@@ -177,13 +192,26 @@ open_ai.register_mob = function(name,def)
 					
 			--debug test to change behavior
 			if self.behavior_timer >= self.behavior_timer_goal then
-				print("Changed direction")
-				self.goal = {x=math.random(-self.max_velocity,self.max_velocity),y=math.random(-self.max_velocity,self.max_velocity),z=math.random(-self.max_velocity,self.max_velocity)}
+				--print("Changed direction")
+				--self.goal = {x=math.random(-self.max_velocity,self.max_velocity),y=math.random(-self.max_velocity,self.max_velocity),z=math.random(-self.max_velocity,self.max_velocity)}
+				self.yaw = (math.random(0, 360)/360) * (math.pi*2) --double pi to allow complete rotation
+				self.velocity = math.random(1,self.max_velocity)+math.random()
+				self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
 				self.behavior_timer = 0
+				print(self.yaw)
 			end		
 		end,
 		
 		
+		-- how a mob moves around the world
+		movement = function(self)
+			--move mob to goal velocity using acceleration for smoothness
+			local vel = self.object:getvelocity()
+			local x   = math.sin(self.yaw) * -self.velocity
+			local z   = math.cos(self.yaw) * self.velocity
+			self.object:setacceleration({x=(x - vel.x)*self.acceleration,y=-10,z=(z - vel.z)*self.acceleration})
+		
+		end,
 		
 		
 		
@@ -192,14 +220,13 @@ open_ai.register_mob = function(name,def)
 		--path finding towards goal - can be used to find food or water, or attack players or other mobs
 		path_find = function(self)
 			local pos1 = self.object:getpos()
-			print(dump(self.goal))
-			local pos2 = minetest.get_player_by_name(self.goal):getpos() -- this is the goal debug
+			local pos2 = minetest.get_player_by_name(self.target):getpos() -- this is the goal debug
 						
 			local path = minetest.find_path(pos1,pos2,5,1,3,"A*_noprefetch")
-			
+						
 			if path ~= nil then
 				self.path = path
-				print("set path!")
+				--print("set path!")
 			end
 		end,
 		
@@ -223,12 +250,8 @@ open_ai.register_mob = function(name,def)
 		on_step = function(self,dtime)
 			
 			self.behavior(self,dtime)
-			
-			--move mob to goal velocity using acceleration for smoothness
-			local vel = self.object:getvelocity()
-			self.object:setacceleration({x=(self.goal.x - vel.x)*self.acceleration,y=-10,z=(self.goal.z - vel.z)*self.acceleration})
-			
 			self.set_animation(self)
+			self.movement(self)			
 		end,
 		
 		
