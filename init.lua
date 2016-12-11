@@ -102,6 +102,10 @@ open_ai.register_mob = function(name,def)
 		jump_height = def.jump_height,
 		
 		
+		--Pathfinding variables
+		path = {},
+		goal = "singleplayer",
+		
 		
 		
 		--what mobs do when created
@@ -148,6 +152,7 @@ open_ai.register_mob = function(name,def)
 		--this runs everything that happens when a mob enters a new node
 		update = function(self)
 			self.jump(self)
+			self.path_find(self)
 		end,
 		
 		
@@ -177,6 +182,33 @@ open_ai.register_mob = function(name,def)
 				self.behavior_timer = 0
 			end		
 		end,
+		
+		
+		
+		
+		
+		
+		
+		--path finding towards goal - can be used to find food or water, or attack players or other mobs
+		path_find = function(self)
+			local pos1 = self.object:getpos()
+			print(dump(self.goal))
+			local pos2 = minetest.get_player_by_name(self.goal):getpos() -- this is the goal debug
+						
+			local path = minetest.find_path(pos1,pos2,5,1,3,"A*_noprefetch")
+			
+			if path ~= nil then
+				self.path = path
+				print("set path!")
+			end
+		end,
+		
+		
+		
+		
+		
+		
+		
 		
 		set_animation = function(self)
 			local vel = self.object:getvelocity()
