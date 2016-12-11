@@ -99,6 +99,8 @@ open_ai.register_mob = function(name,def)
 		behavior_timer_goal = 0, --randomly selects between min and max time to change direction
 		behavior_change_min = def.behavior_change_min,
 		behavior_change_max = def.behavior_change_max,
+		update_timer        = 0,
+		
 		
 		--Physical variables
 		old_position = nil,
@@ -121,7 +123,7 @@ open_ai.register_mob = function(name,def)
 			
 			local pos = self.object:getpos()
 			pos.y = pos.y - (self.height/2) -- the bottom of the entity
-			self.old_position = vector.floor(pos)
+			--self.old_position = vector.floor(pos)
 			
 			self.yaw = (math.random(0, 360)/360) * (math.pi*2)
 			
@@ -132,6 +134,16 @@ open_ai.register_mob = function(name,def)
 		jump = function(self)
 			
 			local pos = self.object:getpos()
+			
+			--find out if node is underneath
+			local under_node = minetest.get_node({x=pos.x,y=pos.y-(self.height/2)-0.1,z=pos.z}).name
+			
+			if minetest.registered_nodes[under_node].walkable == false then
+				print("JUMP FAILURE")
+				return
+			end
+			
+			
 			local vel = self.object:getvelocity()
 			
 			--commented out section is to use vel to get yaw dir, hence redeffing it as local yaw verus self.yaw
@@ -142,19 +154,6 @@ open_ai.register_mob = function(name,def)
 				--turn it into usable position modifier
 				local x = (math.sin(yaw) * -1)*1.5
 				local z = (math.cos(yaw))*1.5
-				--[[ uncomment this to see where mobs check for obstacles
-				minetest.add_particle({
-					pos = {x=pos.x+x,y=pos.y,z=pos.z+z},
-					velocity = {x=0, y=0, z=0},
-					acceleration = {x=0, y=0, z=0},
-					expirationtime = 1,
-					size = 3,
-					collisiondetection = false,
-					vertical = false,
-					texture = "heart.png",
-					playername = "singleplayer"
-				})
-				]]--
 				local node = minetest.get_node({x=pos.x+x,y=pos.y,z=pos.z+z}).name
 				if minetest.registered_nodes[node].walkable == true then
 					--print("jump")
@@ -164,14 +163,22 @@ open_ai.register_mob = function(name,def)
 
 		end,
 		
-		--this runs everything that happens when a mob enters a new node
+		--this runs everything that happens when a mob update timer resets
 		update = function(self)
 			self.jump(self)
+			self.path_find(self)
 		end,
 		
-		
+		--how a mob thinks
 		behavior = function(self,dtime)
 			self.behavior_timer = self.behavior_timer + dtime
+			self.update_timer   = self.update_timer + dtime
+			
+			if self.update_timer >= 0.25 then
+				self.update(self)
+				self.update_timer = 0
+			end
+			
 			local vel = self.object:getvelocity()
 
 			
@@ -180,14 +187,8 @@ open_ai.register_mob = function(name,def)
 			testpos.y = testpos.y-- - (self.height/2) -- the bottom of the entity
 			local vec_pos = vector.floor(testpos) -- the node that the mob exists in
 			
-			
-			--update the node it exists in if changed - also do jump function to find if jumping is needed
-			if vec_pos.x ~= self.old_position.x or
-			vec_pos.y ~= self.old_position.y or
-			vec_pos.z ~= self.old_position.z then
-				self.old_position = vec_pos
-				self.update(self)
-			end
+
+
 					
 			--debug test to change behavior
 			if self.behavior_timer >= self.behavior_timer_goal then
@@ -298,7 +299,6 @@ open_ai.register_mob = function(name,def)
 		
 		--what mobs do on each server step
 		on_step = function(self,dtime)
-			self.path_find(self)
 			self.behavior(self,dtime)
 			self.set_animation(self)
 			self.movement(self)			
