@@ -194,11 +194,11 @@ open_ai.register_mob = function(name,def)
 			if self.behavior_timer >= self.behavior_timer_goal then
 				--print("Changed direction")
 				--self.goal = {x=math.random(-self.max_velocity,self.max_velocity),y=math.random(-self.max_velocity,self.max_velocity),z=math.random(-self.max_velocity,self.max_velocity)}
-				self.yaw = (math.random(0, 360)/360) * (math.pi*2) --double pi to allow complete rotation
+				--self.yaw = (math.random(0, 360)/360) * (math.pi*2) --double pi to allow complete rotation
 				self.velocity = math.random(1,self.max_velocity)+math.random()
 				self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
 				self.behavior_timer = 0
-				print(self.yaw)
+				--print(self.yaw)
 			end		
 		end,
 		
@@ -223,10 +223,51 @@ open_ai.register_mob = function(name,def)
 			local pos2 = minetest.get_player_by_name(self.target):getpos() -- this is the goal debug
 						
 			local path = minetest.find_path(pos1,pos2,5,1,3,"A*_noprefetch")
-						
+			
+			--Debug to visualize mob paths
+			if table.getn(self.path) > 0 then
+				
+			
+				for _,pos in pairs(self.path) do
+					
+				end
+			end
+			
+			
+			
 			if path ~= nil then
 				self.path = path
 				--print("set path!")
+			else
+				--print(self.path[1])
+			end
+			
+			
+			
+			--debug pathfinding
+			if table.getn(self.path) > 2 then
+				--print("going to player")
+				
+				local pos3 = self.path[2]
+				minetest.add_particle({
+					pos = pos3,
+					velocity = {x=0, y=0, z=0},
+					acceleration = {x=0, y=0, z=0},
+					expirationtime = 0.5,
+					size = 4,
+					collisiondetection = false,
+					vertical = false,
+					texture = "default_stone.png",
+				})
+				
+				
+				local vec = {x=pos1.x-pos3.x, z=pos1.z-pos3.z}
+				--print(vec.x,vec.z)
+				self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
+				
+				if pos3.x > pos1.x then
+					self.yaw = self.yaw+math.pi
+				end
 			end
 		end,
 		
