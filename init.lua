@@ -167,7 +167,6 @@ open_ai.register_mob = function(name,def)
 		--this runs everything that happens when a mob enters a new node
 		update = function(self)
 			self.jump(self)
-			self.path_find(self)
 		end,
 		
 		
@@ -299,7 +298,7 @@ open_ai.register_mob = function(name,def)
 		
 		--what mobs do on each server step
 		on_step = function(self,dtime)
-			
+			self.path_find(self)
 			self.behavior(self,dtime)
 			self.set_animation(self)
 			self.movement(self)			
