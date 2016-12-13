@@ -12,6 +12,8 @@
  0.) do pathfinding by setting yaw towards the next point in the table
  0.) only run this function if the goal entity/player is in a new node to prevent extreme lag
  
+ 0.) sneaking mobs, if a mob is sneaking, vs running at you, make no walking sounds
+ 
  0.) Health
  
  0.) running particles
@@ -24,7 +26,7 @@
  
  3.) Make mobs avoid other mobs and players when walking around
  
- 4.) pathfinding, avoid walking off cliffs
+ ########4.) pathfinding, avoid walking off cliffs
  
  5.) attacking players
  
@@ -117,7 +119,7 @@ open_ai.register_mob = function(name,def)
 		--what mobs do when created
 		on_activate = function(self, staticdata, dtime_s)
 			--debug for movement
-			self.velocity = math.random(1,self.max_velocity)+math.random()
+			self.velocity = self.max_velocity--math.random(1,self.max_velocity)+math.random()
 			
 			self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
 			
@@ -164,20 +166,22 @@ open_ai.register_mob = function(name,def)
 		end,
 		
 		--this runs everything that happens when a mob update timer resets
-		update = function(self)
-			self.jump(self)
-			self.path_find(self)
+		update = function(self,dtime)
+			self.update_timer = self.update_timer + dtime
+			if self.update_timer >= 0.1 then
+				self.update_timer = 0
+				self.jump(self)
+				self.path_find(self)			
+			end
+
 		end,
 		
 		--how a mob thinks
 		behavior = function(self,dtime)
 			self.behavior_timer = self.behavior_timer + dtime
-			self.update_timer   = self.update_timer + dtime
 			
-			if self.update_timer >= 0.25 then
-				self.update(self)
-				self.update_timer = 0
-			end
+			
+
 			
 			local vel = self.object:getvelocity()
 
@@ -195,7 +199,7 @@ open_ai.register_mob = function(name,def)
 				--print("Changed direction")
 				--self.goal = {x=math.random(-self.max_velocity,self.max_velocity),y=math.random(-self.max_velocity,self.max_velocity),z=math.random(-self.max_velocity,self.max_velocity)}
 				--self.yaw = (math.random(0, 360)/360) * (math.pi*2) --double pi to allow complete rotation
-				self.velocity = math.random(1,self.max_velocity)+math.random()
+				self.velocity = self.max_velocity--math.random(1,self.max_velocity)+math.random()
 				self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
 				self.behavior_timer = 0
 				--print(self.yaw)
@@ -242,17 +246,14 @@ open_ai.register_mob = function(name,def)
 					
 				end
 			end
-			
-			
 		
-			
-			
 			--debug pathfinding
 			if path and table.getn(path) > 2 then
 				self.path = path
 				--print("going to player")
 				
-				local pos3 = self.path[2]
+				local pos3 = self.path[3]
+				
 				minetest.add_particle({
 					pos = pos3,
 					velocity = {x=0, y=0, z=0},
@@ -271,6 +272,36 @@ open_ai.register_mob = function(name,def)
 				
 				if pos3.x > pos1.x then
 					self.yaw = self.yaw+math.pi
+				end
+			--end
+			--if failed to update cost map then continue on old path
+			elseif table.getn(self.path) > 3 then
+				local pathlength = table.getn(self.path)
+				
+				local path = minetest.find_path(pos1,self.path[pathlength],5,1,3,"Dijkstra")
+				
+				if path and table.getn(path) > 2 then
+					self.path = path
+					local pos3 = self.path[3]
+					minetest.add_particle({
+						pos = pos3,
+						velocity = {x=0, y=0, z=0},
+						acceleration = {x=0, y=0, z=0},
+						expirationtime = 0.5,
+						size = 4,
+						collisiondetection = false,
+						vertical = false,
+						texture = "default_stone.png",
+					})
+					
+					
+					local vec = {x=pos1.x-pos3.x, z=pos1.z-pos3.z}
+					--print(vec.x,vec.z)
+					self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
+					
+					if pos3.x > pos1.x then
+						self.yaw = self.yaw+math.pi
+					end
 				end
 			end
 		end,
@@ -294,8 +325,9 @@ open_ai.register_mob = function(name,def)
 		--what mobs do on each server step
 		on_step = function(self,dtime)
 			self.behavior(self,dtime)
+			self.update(self,dtime)
 			self.set_animation(self)
-			self.movement(self)			
+			self.movement(self)
 		end,
 		
 		
