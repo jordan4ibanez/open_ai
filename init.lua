@@ -102,6 +102,7 @@ open_ai.register_mob = function(name,def)
 		behavior_change_min = def.behavior_change_min,
 		behavior_change_max = def.behavior_change_max,
 		update_timer        = 0,
+		follow_item         = def.follow_item,
 		
 		
 		--Physical variables
@@ -113,13 +114,14 @@ open_ai.register_mob = function(name,def)
 		--Pathfinding variables
 		path = {},
 		target = "singleplayer",
+		following = false,
 		
 		
 		
 		--what mobs do when created
 		on_activate = function(self, staticdata, dtime_s)
 			--debug for movement
-			self.velocity = self.max_velocity--math.random(1,self.max_velocity)+math.random()
+			self.velocity = math.random(1,self.max_velocity)+math.random()
 			
 			self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
 			
@@ -195,14 +197,16 @@ open_ai.register_mob = function(name,def)
 
 					
 			--debug test to change behavior
-			if self.behavior_timer >= self.behavior_timer_goal then
+			if self.following == false and self.behavior_timer >= self.behavior_timer_goal then
 				--print("Changed direction")
 				--self.goal = {x=math.random(-self.max_velocity,self.max_velocity),y=math.random(-self.max_velocity,self.max_velocity),z=math.random(-self.max_velocity,self.max_velocity)}
-				--self.yaw = (math.random(0, 360)/360) * (math.pi*2) --double pi to allow complete rotation
-				self.velocity = self.max_velocity--math.random(1,self.max_velocity)+math.random()
+				self.yaw = (math.random(0, 360)/360) * (math.pi*2) --double pi to allow complete rotation
+				self.velocity = math.random(1,self.max_velocity)+math.random()
 				self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
 				self.behavior_timer = 0
-				--print(self.yaw)
+				print("randomly moving around")
+			elseif self.following == true then
+				print("following in behavior function")
 			end		
 		end,
 		
@@ -214,8 +218,37 @@ open_ai.register_mob = function(name,def)
 			local x   = math.sin(self.yaw) * -self.velocity
 			local z   = math.cos(self.yaw) * self.velocity
 			self.object:setacceleration({x=(x - vel.x)*self.acceleration,y=-10,z=(z - vel.z)*self.acceleration})
-		
 		end,
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		--check if a mob should follow a player when holding an item
+		check_to_follow = function(self)
+			--print(dump(self.follow_item))
+			local pos = self.object:getpos()
+			for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 10)) do
+				if object:is_player() then
+					local item = object:get_wielded_item()
+					if item:to_string() ~= "" and item:to_table().name == self.follow_item then
+						self.following = true
+					else
+						self.following = false
+					end
+				end
+			end
+		end,
+		
+		
+		
+		
+		
+		
 		
 		
 		
@@ -223,66 +256,41 @@ open_ai.register_mob = function(name,def)
 		
 		--path finding towards goal - can be used to find food or water, or attack players or other mobs
 		path_find = function(self)
-			local pos1 = self.object:getpos()
-			local pos2 = minetest.get_player_by_name(self.target):getpos() -- this is the goal debug
-						
-			local path = minetest.find_path(pos1,pos2,5,1,3,"Dijkstra")
+			if self.following == true then
+				self.velocity = self.max_velocity
+				print("following player")
 			
-			--Debug to visualize mob paths
-			if table.getn(self.path) > 0 then
+				local pos1 = self.object:getpos()
+				local pos2 = minetest.get_player_by_name(self.target):getpos() -- this is the goal debug
+							
+				local path = minetest.find_path(pos1,pos2,5,1,3,"Dijkstra")
 				
-			
-				for _,pos in pairs(self.path) do
-					minetest.add_particle({
-					pos = pos,
-					velocity = {x=0, y=0, z=0},
-					acceleration = {x=0, y=0, z=0},
-					expirationtime = 0.5,
-					size = 4,
-					collisiondetection = false,
-					vertical = false,
-					texture = "heart.png",
-					})
+				--Debug to visualize mob paths
+				if table.getn(self.path) > 0 then
 					
+				
+					for _,pos in pairs(self.path) do
+						minetest.add_particle({
+						pos = pos,
+						velocity = {x=0, y=0, z=0},
+						acceleration = {x=0, y=0, z=0},
+						expirationtime = 0.5,
+						size = 4,
+						collisiondetection = false,
+						vertical = false,
+						texture = "heart.png",
+						})
+						
+					end
 				end
-			end
-		
-			--debug pathfinding
-			if path and table.getn(path) > 2 then
-				self.path = path
-				--print("going to player")
-				
-				local pos3 = self.path[3]
-				
-				minetest.add_particle({
-					pos = pos3,
-					velocity = {x=0, y=0, z=0},
-					acceleration = {x=0, y=0, z=0},
-					expirationtime = 0.5,
-					size = 4,
-					collisiondetection = false,
-					vertical = false,
-					texture = "default_stone.png",
-				})
-				
-				
-				local vec = {x=pos1.x-pos3.x, z=pos1.z-pos3.z}
-				--print(vec.x,vec.z)
-				self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
-				
-				if pos3.x > pos1.x then
-					self.yaw = self.yaw+math.pi
-				end
-			--end
-			--if failed to update cost map then continue on old path
-			elseif table.getn(self.path) > 3 then
-				local pathlength = table.getn(self.path)
-				
-				local path = minetest.find_path(pos1,self.path[pathlength],5,1,3,"Dijkstra")
-				
+			
+				--debug pathfinding
 				if path and table.getn(path) > 2 then
 					self.path = path
+					--print("going to player")
+					
 					local pos3 = self.path[3]
+					
 					minetest.add_particle({
 						pos = pos3,
 						velocity = {x=0, y=0, z=0},
@@ -302,17 +310,40 @@ open_ai.register_mob = function(name,def)
 					if pos3.x > pos1.x then
 						self.yaw = self.yaw+math.pi
 					end
+				--end
+				--if failed to update cost map then continue on old path
+				elseif table.getn(self.path) > 3 then
+					local pathlength = table.getn(self.path)
+					
+					local path = minetest.find_path(pos1,self.path[pathlength],5,1,3,"Dijkstra")
+					
+					if path and table.getn(path) > 2 then
+						self.path = path
+						local pos3 = self.path[3]
+						minetest.add_particle({
+							pos = pos3,
+							velocity = {x=0, y=0, z=0},
+							acceleration = {x=0, y=0, z=0},
+							expirationtime = 0.5,
+							size = 4,
+							collisiondetection = false,
+							vertical = false,
+							texture = "default_stone.png",
+						})
+						
+						
+						local vec = {x=pos1.x-pos3.x, z=pos1.z-pos3.z}
+						--print(vec.x,vec.z)
+						self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
+						
+						if pos3.x > pos1.x then
+							self.yaw = self.yaw+math.pi
+						end
+					end
 				end
 			end
 		end,
-		
-		
-		
-		
-		
-		
-		
-		
+
 		set_animation = function(self)
 			local vel = self.object:getvelocity()
 			local speed = (math.abs(vel.x)+math.abs(vel.z))*self.animation.speed_normal --check this
@@ -324,6 +355,8 @@ open_ai.register_mob = function(name,def)
 		
 		--what mobs do on each server step
 		on_step = function(self,dtime)
+			self.check_to_follow(self)
+		
 			self.behavior(self,dtime)
 			self.update(self,dtime)
 			self.set_animation(self)
@@ -365,4 +398,7 @@ open_ai.register_mob("open_ai:test",{
 	},
 	automatic_face_movement_dir = -90.0, --what direction the mob faces in
 	makes_footstep_sound = true, --if a mob makes footstep sounds
+	
+	--mob behavior variables
+	follow_item = "default:dry_grass_1", --if you're holding this a peaceful mob will follow you
 })
