@@ -277,11 +277,12 @@ open_ai.register_mob = function(name,def)
 				
 				--if in path step, delete it to not get stuck in place
 				
-				local vec_pos = vector.floor(pos1)
-				local step_pos= self.path[1]
+				local vec_pos = vector.round(pos1)
 				
-				if step_pos then
-					if vec_pos.x == step_pos.x and vec_pos.z == step_pos.z then
+				--print(vec_pos.x,vec_pos.z, self.path[2].x,self.path[2].z)
+				
+				if table.getn(self.path) > 1  then
+					if vec_pos.x == self.path[2].x and vec_pos.z == self.path[2].z then
 						print("delete first step")
 						--self.path[1] = nil
 						table.remove(self.path, 1)
@@ -319,7 +320,7 @@ open_ai.register_mob = function(name,def)
 				end
 				
 				--follow internal path
-				if self.path and table.getn(self.path) > 2 then
+				if self.path and table.getn(self.path) > 1 then
 				
 					--the second step in the path
 					pos3 = self.path[2]
