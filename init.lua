@@ -206,7 +206,7 @@ open_ai.register_mob = function(name,def)
 				self.behavior_timer = 0
 				print("randomly moving around")
 			elseif self.following == true then
-				print("following in behavior function")
+				--print("following in behavior function")
 			end		
 		end,
 		
@@ -258,23 +258,49 @@ open_ai.register_mob = function(name,def)
 		path_find = function(self)
 			if self.following == true then
 				self.velocity = self.max_velocity
-				print("following player")
 			
 				local pos1 = self.object:getpos()
+				
 				local pos2 = minetest.get_player_by_name(self.target):getpos() -- this is the goal debug
-							
-				local path = minetest.find_path(pos1,pos2,5,1,3,"Dijkstra")
+				
+				local path = nil
+				
+				
+				--if can't get goal then don't pathfind
+				if not pos2 then
+					path = self.path
+				else
+					path = minetest.find_path(pos1,pos2,5,1,3,"Dijkstra")
+				end
+				
+				
+				
+				--if in path step, delete it to not get stuck in place
+				
+				local vec_pos = vector.floor(pos1)
+				local step_pos= self.path[1]
+				
+				if step_pos then
+					if vec_pos.x == step_pos.x and vec_pos.z == step_pos.z then
+						print("delete first step")
+						--self.path[1] = nil
+						table.remove(self.path, 1)
+					end
+				end
+				
+				
+				
+				
+				
 				
 				--Debug to visualize mob paths
 				if table.getn(self.path) > 0 then
-					
-				
 					for _,pos in pairs(self.path) do
 						minetest.add_particle({
 						pos = pos,
 						velocity = {x=0, y=0, z=0},
 						acceleration = {x=0, y=0, z=0},
-						expirationtime = 0.5,
+						expirationtime = 0.1,
 						size = 4,
 						collisiondetection = false,
 						vertical = false,
@@ -283,26 +309,35 @@ open_ai.register_mob = function(name,def)
 						
 					end
 				end
-			
+				
 				--debug pathfinding
-				if path and table.getn(path) > 2 then
+				local pos3 = nil
+				
+				--create a path internally
+				if path then
 					self.path = path
-					--print("going to player")
+				end
+				
+				--follow internal path
+				if self.path and table.getn(self.path) > 2 then
+				
+					--the second step in the path
+					pos3 = self.path[2]
 					
-					local pos3 = self.path[3]
-					
+					--display the path goal
 					minetest.add_particle({
 						pos = pos3,
 						velocity = {x=0, y=0, z=0},
 						acceleration = {x=0, y=0, z=0},
-						expirationtime = 0.5,
+						expirationtime = 0.1,
 						size = 4,
 						collisiondetection = false,
 						vertical = false,
 						texture = "default_stone.png",
 					})
-					
-					
+				end
+				
+				if pos3 then
 					local vec = {x=pos1.x-pos3.x, z=pos1.z-pos3.z}
 					--print(vec.x,vec.z)
 					self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
@@ -310,36 +345,8 @@ open_ai.register_mob = function(name,def)
 					if pos3.x > pos1.x then
 						self.yaw = self.yaw+math.pi
 					end
-				--end
-				--if failed to update cost map then continue on old path
-				elseif table.getn(self.path) > 3 then
-					local pathlength = table.getn(self.path)
-					
-					local path = minetest.find_path(pos1,self.path[pathlength],5,1,3,"Dijkstra")
-					
-					if path and table.getn(path) > 2 then
-						self.path = path
-						local pos3 = self.path[3]
-						minetest.add_particle({
-							pos = pos3,
-							velocity = {x=0, y=0, z=0},
-							acceleration = {x=0, y=0, z=0},
-							expirationtime = 0.5,
-							size = 4,
-							collisiondetection = false,
-							vertical = false,
-							texture = "default_stone.png",
-						})
-						
-						
-						local vec = {x=pos1.x-pos3.x, z=pos1.z-pos3.z}
-						--print(vec.x,vec.z)
-						self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
-						
-						if pos3.x > pos1.x then
-							self.yaw = self.yaw+math.pi
-						end
-					end
+				else
+					print("failure in pathfinding")
 				end
 			end
 		end,
