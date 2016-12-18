@@ -87,7 +87,7 @@ open_ai.register_mob = function(name,def)
 		physical     = def.physical,
 		max_velocity = def.max_velocity,
 		acceleration = def.acceleration,
-		
+		hp_max       = def.health,
 		automatic_face_movement_dir = def.automatic_face_movement_dir, --for smoothness
 		
 		--Aesthetic variables
@@ -413,6 +413,7 @@ open_ai.register_mob("open_ai:test",{
 	width  = 0.7, --divide by 2 for even width
 	physical = true, --if the mob collides with the world, false is useful for ghosts
 	jump_height = 5, --how high a mob will jump
+	health = 20,
 	
 	--mob movement variables
 	max_velocity = 3, --set the max velocity that a mob can move
