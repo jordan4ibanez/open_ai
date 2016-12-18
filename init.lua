@@ -41,6 +41,8 @@
  9.) pet mobs
  
  10.) mobs climb ladders, and are affected by nodes like players are
+ 0.) if the pathfinding goal is unreachable then don't pathfind
+ 0.) else if pathfinding, try to find ladder in area if ladder = true in definition, then climb the ladder to the goal
  
  11.) have mobs with player mesh able to equip armor and wield an item with armor mod
  
