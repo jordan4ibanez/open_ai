@@ -16,6 +16,8 @@
  
  0.) Health
  
+ 0.) Make mobs define wether they float or sink in water
+ 
  0.) running particles
      
  0.) when mob gets below 0.1 velocity do set velocity to make it stand still ONCE so mobs don't float and set acceleration to 0
@@ -136,33 +138,58 @@ open_ai.register_mob = function(name,def)
 		
 		--decide wether an entity should jump or change direction
 		jump = function(self)
-			
 			local pos = self.object:getpos()
 			
-			--find out if node is underneath
-			local under_node = minetest.get_node({x=pos.x,y=pos.y-(self.height/2)-0.1,z=pos.z}).name
-			
-			if minetest.registered_nodes[under_node].walkable == false then
-				--print("JUMP FAILURE")
-				return
-			end
-			
-			
-			local vel = self.object:getvelocity()
-			
-			--commented out section is to use vel to get yaw dir, hence redeffing it as local yaw verus self.yaw
-			local yaw = self.yaw--(math.atan(vel.z / vel.x) + math.pi / 2)
-						
-			--don't check if not moving instead change direction
-			if yaw == yaw then --check for nan
-				--turn it into usable position modifier
-				local x = (math.sin(yaw) * -1)*1.5
-				local z = (math.cos(yaw))*1.5
-				local node = minetest.get_node({x=pos.x+x,y=pos.y,z=pos.z+z}).name
-				if minetest.registered_nodes[node].walkable == true then
+			--only jump when path step is higher up
+			if self.following == true then
+				--only try to jump if pathfinding exists
+				if self.path and table.getn(self.path) > 1 then
+					--don't jump if current position is equal to or higher than goal					
+					if vector.round(pos).y >= self.path[2].y then
+						return
+					end
+				--don't jump if pathfinding doesn't exist
+				else
+					return
+				end
+				
+					
+					
+				--find out if node is underneath
+				local under_node = minetest.get_node({x=pos.x,y=pos.y-(self.height/2)-0.1,z=pos.z}).name
+				local vel = self.object:getvelocity()
+				if minetest.registered_nodes[under_node].walkable == true then
 					--print("jump")
 					self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
-				end			
+				end
+			--stupidly jump
+			elseif self.following == false then
+			
+				--find out if node is underneath
+				local under_node = minetest.get_node({x=pos.x,y=pos.y-(self.height/2)-0.1,z=pos.z}).name
+				
+				if minetest.registered_nodes[under_node].walkable == false then
+					--print("JUMP FAILURE")
+					return
+				end
+				
+				
+				local vel = self.object:getvelocity()
+				
+				--commented out section is to use vel to get yaw dir, hence redeffing it as local yaw verus self.yaw
+				local yaw = self.yaw--(math.atan(vel.z / vel.x) + math.pi / 2)
+							
+				--don't check if not moving instead change direction
+				if yaw == yaw then --check for nan
+					--turn it into usable position modifier
+					local x = (math.sin(yaw) * -1)*1.5
+					local z = (math.cos(yaw))*1.5
+					local node = minetest.get_node({x=pos.x+x,y=pos.y,z=pos.z+z}).name
+					if minetest.registered_nodes[node].walkable == true then
+						--print("jump")
+						self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
+					end			
+				end
 			end
 
 		end,
