@@ -4,6 +4,10 @@
  
  0 is mainly function ideas/notes on how to execute things
  
+ 0.) Make functions less linear and have sub functions after the proof of concept is completed
+ 
+ 0.) check if mob is hanging off the side of a node, somehow
+ 
  0.) only check nodes using voxelmanip when in new floored position
  
  0.) minetest.line_of_sight(pos1, pos2, stepsize) to check if a mob sees player
@@ -13,9 +17,7 @@
  0.) only run this function if the goal entity/player is in a new node to prevent extreme lag
  
  0.) sneaking mobs, if a mob is sneaking, vs running at you, make no walking sounds
- 
- 0.) Health
- 
+  
  0.) Make mobs define wether they float or sink in water
  
  0.) running particles
@@ -27,9 +29,7 @@
  2.) make mobs drown if drown = true in definition
  
  3.) Make mobs avoid other mobs and players when walking around
- 
- ########4.) pathfinding, avoid walking off cliffs
- 
+  
  5.) attacking players
  
  6.) drop items
@@ -74,7 +74,6 @@
  This is done to use the actual center of mobs in functions, same with width
  
  
- 
  ]]--
 
 --global to enable other mods/packs to utilize the ai
@@ -87,6 +86,7 @@ open_ai.register_mob = function(name,def)
 		height       = def.height,
 		width        = def.width,
 		physical     = def.physical,
+		collide_with_objects = false, -- for magnetic collision
 		max_velocity = def.max_velocity,
 		acceleration = def.acceleration,
 		hp_max       = def.health,
@@ -249,14 +249,6 @@ open_ai.register_mob = function(name,def)
 			self.object:setacceleration({x=(x - vel.x)*self.acceleration,y=-10,z=(z - vel.z)*self.acceleration})
 		end,
 		
-		
-		
-		
-		
-		
-		
-		
-		
 		--check if a mob should follow a player when holding an item
 		check_to_follow = function(self)
 			--print(dump(self.follow_item))
@@ -272,16 +264,7 @@ open_ai.register_mob = function(name,def)
 				end
 			end
 		end,
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
+
 		
 		--path finding towards goal - can be used to find food or water, or attack players or other mobs
 		path_find = function(self)
@@ -317,11 +300,6 @@ open_ai.register_mob = function(name,def)
 						table.remove(self.path, 1)
 					end
 				end
-				
-				
-				
-				
-				
 				
 				--Debug to visualize mob paths
 				if table.getn(self.path) > 0 then
@@ -366,7 +344,7 @@ open_ai.register_mob = function(name,def)
 						texture = "default_stone.png",
 					})
 				else
-					print("less than 2 steps, stop")
+					--print("less than 2 steps, stop")
 					self.velocity = 0
 				end
 				
@@ -379,7 +357,7 @@ open_ai.register_mob = function(name,def)
 						self.yaw = self.yaw+math.pi
 					end
 				else
-					print("failure in pathfinding")
+					--print("failure in pathfinding")
 				end
 			end
 		end,
@@ -389,8 +367,6 @@ open_ai.register_mob = function(name,def)
 			local speed = (math.abs(vel.x)+math.abs(vel.z))*self.animation.speed_normal --check this
 			
 			self.object:set_animation({x=self.animation.walk_start,y=self.animation.walk_end}, speed, 0, true)
-
-		
 		end,
 		
 		--what mobs do on each server step
