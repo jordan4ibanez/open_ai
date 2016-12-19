@@ -139,7 +139,14 @@ open_ai.register_mob = function(name,def)
 			--self.old_position = vector.floor(pos)
 			
 			self.yaw = (math.random(0, 360)/360) * (math.pi*2)
+			if self.user_defined_on_activate then
+				self.user_defined_on_activate(self, staticdata, dtime_s)
+			end
 		end,
+		--user defined function
+		user_defined_on_activate = def.on_activate,
+		
+		
 		
 		
 		--decide wether an entity should jump or change direction
@@ -264,8 +271,8 @@ open_ai.register_mob = function(name,def)
 		movement = function(self)
 			
 			local collide_values = self.collision(self)
-			c_x = collide_values[1]
-			c_z = collide_values[2]
+			local c_x = collide_values[1]
+			local c_z = collide_values[2]
 			--print(c_x,c_z)
 			--move mob to goal velocity using acceleration for smoothness
 			local vel = self.object:getvelocity()
@@ -403,9 +410,13 @@ open_ai.register_mob = function(name,def)
 			self.update(self,dtime)
 			self.set_animation(self)
 			self.movement(self)
+			if self.user_defined then
+				self.user_defined_on_step(self,dtime)
+			end
 		end,
 		
-		
+		--a function that users can define
+		user_defined_on_step = def.on_step,
 		
 		
 		
@@ -443,4 +454,12 @@ open_ai.register_mob("open_ai:test",{
 	
 	--mob behavior variables
 	follow_item = "default:dry_grass_1", --if you're holding this a peaceful mob will follow you
+	
+	--user defined functions
+	on_step = function(self,dtime)
+		print("test")
+	end,
+	on_activate = function(self, staticdata, dtime_s)
+		print("activating")
+	end,
 })
