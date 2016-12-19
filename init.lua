@@ -409,9 +409,15 @@ open_ai.register_mob = function(name,def)
 			if self.user_defined_on_punch then
 				self.user_defined_on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
 			end
+			if self.object:get_hp() <= 0 then
+				if self.user_defined_on_die then
+					self.user_defined_on_die(self,dtime)
+				end
+			end
 		end,
 		--user defined
 		user_defined_on_punch = def.on_punch,
+		user_defined_on_die   = def.on_die,
 		
 		--what happens when you right click a mob
 		on_rightclick = function(self, clicker)
@@ -435,8 +441,7 @@ open_ai.register_mob = function(name,def)
 		end,
 		
 		--a function that users can define
-		user_defined_on_step = def.on_step,
-		
+		user_defined_on_step = def.on_step,	
 		
 		
 	})
@@ -476,7 +481,7 @@ open_ai.register_mob("open_ai:test",{
 	
 	--user defined functions
 	on_step = function(self,dtime)
-		print("test")
+		--print("test")
 	end,
 	on_activate = function(self, staticdata, dtime_s)
 		print("activating")
@@ -486,5 +491,8 @@ open_ai.register_mob("open_ai:test",{
 	end,
 	on_rightclick = function(self, clicker)
 		print("right clicked")
+	end,
+	on_die = function(self,dtime)
+		print("poof")
 	end,
 })
