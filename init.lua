@@ -16,6 +16,8 @@
  0.) do pathfinding by setting yaw towards the next point in the table
  0.) only run this function if the goal entity/player is in a new node to prevent extreme lag
  
+ 0.) Lasso that pulls mobs towards you without pathfinding
+ 
  0.) sneaking mobs, if a mob is sneaking, vs running at you, make no walking sounds
   
  0.) Make mobs define wether they float or sink in water
@@ -50,6 +52,8 @@
  
  11.) have mobs with player mesh able to equip armor and wield an item with armor mod
  
+ 12.) Document each function with line number in release
+ 
  Or in other words, mobs that add fun and aesthetic to the game, yet do not take away performance
  
  This is my first "professional" level mod which I hope to complete
@@ -83,6 +87,8 @@
 --global to enable other mods/packs to utilize the ai
 open_ai = {}
 
+dofile(minetest.get_modpath("open_ai").."/leash.lua")
+
 open_ai.register_mob = function(name,def)
 	minetest.register_entity(name, {
 		--Do simpler definition variables for ease of use
@@ -112,6 +118,8 @@ open_ai.register_mob = function(name,def)
 		behavior_change_max = def.behavior_change_max,
 		update_timer        = 0,
 		follow_item         = def.follow_item,
+		leash               = def.leash,
+		leashed             = false,
 		
 		
 		--Physical variables
@@ -154,7 +162,7 @@ open_ai.register_mob = function(name,def)
 			local pos = self.object:getpos()
 			
 			--only jump when path step is higher up
-			if self.following == true then
+			if self.following == true and self.leashed == false then
 				--only try to jump if pathfinding exists
 				if self.path and table.getn(self.path) > 1 then
 					--don't jump if current position is equal to or higher than goal					
@@ -230,7 +238,7 @@ open_ai.register_mob = function(name,def)
 			local vec_pos = vector.floor(testpos) -- the node that the mob exists in
 		
 			--debug test to change behavior
-			if self.following == false and self.behavior_timer >= self.behavior_timer_goal then
+			if self.following == false and self.behavior_timer >= self.behavior_timer_goal and self.leashed == false then
 				--print("Changed direction")
 				--self.goal = {x=math.random(-self.max_velocity,self.max_velocity),y=math.random(-self.max_velocity,self.max_velocity),z=math.random(-self.max_velocity,self.max_velocity)}
 				self.yaw = (math.random(0, 360)/360) * (math.pi*2) --double pi to allow complete rotation
@@ -240,7 +248,30 @@ open_ai.register_mob = function(name,def)
 				print("randomly moving around")
 			elseif self.following == true then
 				--print("following in behavior function")
+			elseif self.leashed == true then
+				self.leashed_function(self,dtime)
 			end		
+		end,
+		
+		--when a mob is on a leash
+		leashed_function = function(self,dtime)
+			local pos  = self.object:getpos()
+			local pos2 = minetest.get_player_by_name(self.target):getpos()
+			local vec = {x=pos.x-pos2.x, z=pos.z-pos2.z}
+			--print(vec.x,vec.z)
+			self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
+			
+			if pos2.x > pos.x then
+				self.yaw = self.yaw+math.pi
+			end
+			
+			--do max velocity if distance is over 2 else stop moving
+			local distance = vector.distance(pos,pos2)
+			if distance < 2 then
+				distance = 0
+			end
+			self.velocity = distance
+			
 		end,
 		
 		--how the mob collides with other mobs and players
@@ -251,7 +282,9 @@ open_ai.register_mob = function(name,def)
 			local z   = 0
 			for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, self.width)) do
 				--only collide with other mobs and players
-				if object:is_player() or (object:get_luaentity().mob == true and object ~= self.object) then
+							
+				--add exception if a nil entity exists around it
+				if object:is_player() or (object:get_luaentity() and object:get_luaentity().mob == true and object ~= self.object) then
 					local pos2 = object:getpos()
 					local vec  = {x=pos.x-pos2.x, z=pos.z-pos2.z}
 					--push away harder the closer the collision is, could be used for mob cannons
@@ -285,7 +318,10 @@ open_ai.register_mob = function(name,def)
 		
 		--check if a mob should follow a player when holding an item
 		check_to_follow = function(self)
-			--print(dump(self.follow_item))
+			--don't follow if leashed
+			if self.leashed == true then
+				return
+			end
 			local pos = self.object:getpos()
 			for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 10)) do
 				if object:is_player() then
@@ -421,6 +457,16 @@ open_ai.register_mob = function(name,def)
 		
 		--what happens when you right click a mob
 		on_rightclick = function(self, clicker)
+		
+			local item = clicker:get_wielded_item()
+			
+			if item:to_string() ~= "" then
+				if item:to_table().name == "open_ai:leash" then
+					self.target  = clicker:get_player_name()
+					self.leashed = true
+				end
+			end
+			
 			if self.user_defined_on_rightclick then
 				self.user_defined_on_rightclick(self, clicker)
 			end
@@ -478,21 +524,22 @@ open_ai.register_mob("open_ai:test",{
 	
 	--mob behavior variables
 	follow_item = "default:dry_grass_1", --if you're holding this a peaceful mob will follow you
+	leash       = true,
 	
 	--user defined functions
 	on_step = function(self,dtime)
 		--print("test")
 	end,
 	on_activate = function(self, staticdata, dtime_s)
-		print("activating")
+		--print("activating")
 	end,
 	on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
-		print("hit")
+		--print("hit")
 	end,
 	on_die = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
-		print("poof")
+		--print("poof")
 	end,
 	on_rightclick = function(self, clicker)
-		print("right clicked")
+		--print("right clicked")
 	end,
 })
