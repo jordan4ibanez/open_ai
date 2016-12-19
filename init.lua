@@ -31,7 +31,6 @@
  
  0.) Make mobs collision detection detect boats, minecarts, and other physical things, somehow, possibly just don't collide with
  0.) item entities
- 0.) Possibly lump movement in with collision detection in a few functions
      
  0.) when mob gets below 0.1 velocity do set velocity to make it stand still ONCE so mobs don't float and set acceleration to 0
  
@@ -125,6 +124,8 @@ open_ai.register_mob = function(name,def)
 		follow_item         = def.follow_item,
 		leash               = def.leash,
 		leashed             = false,
+		in_cart             = false,
+		rides_cart          = def.rides_cart,
 		
 		
 		--Physical variables
@@ -319,10 +320,27 @@ open_ai.register_mob = function(name,def)
 					--modify existing value to magnetize away from mulitiple entities/players
 					x = x + (vec.x * force) * 20
 					z = z + (vec.z * force) * 20
-					
+				--ride in a minecart
+				elseif not object:is_player() and self.rides_cart == true and (object:get_luaentity() and object:get_luaentity().railtype and object ~= self.object) then
+					self.ride_in_cart(self,object)
 				end
 			end
 			return({x,z})
+		end,
+		--logic for riding in cart
+		ride_in_cart = function(self,object)
+			
+			--reset value if cart is removed
+			local ride = self.object:get_attach()
+			if ride == nil and self.in_cart == true then
+				self.in_cart = false
+			end
+			
+			if self.in_cart == false then
+				self.object:set_attach(object, "", {x=0, y=0, z=0}, {x=0, y=0, z=0})
+				object:get_luaentity().driver = "open_ai:mob"
+				self.in_cart = true
+			end
 		end,
 		
 		-- how a mob moves around the world
@@ -573,6 +591,7 @@ open_ai.register_mob("open_ai:test",{
 	--mob behavior variables
 	follow_item = "default:dry_grass_1", --if you're holding this a peaceful mob will follow you
 	leash       = true,
+	rides_cart  = true,
 	
 	--user defined functions
 	on_step = function(self,dtime)
