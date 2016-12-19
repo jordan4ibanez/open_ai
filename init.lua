@@ -191,7 +191,7 @@ open_ai.register_mob = function(name,def)
 					self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
 				end
 			--stupidly jump
-			elseif self.following == false then
+			elseif self.following == false and self.liquid == 0 then
 			
 				--find out if node is underneath
 				local under_node = minetest.get_node({x=pos.x,y=pos.y-(self.height/2)-0.1,z=pos.z}).name
@@ -218,6 +218,24 @@ open_ai.register_mob = function(name,def)
 						self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
 					end			
 				end
+			elseif self.liquid ~= 0 then
+				
+				local vel = self.object:getvelocity()
+				
+				--commented out section is to use vel to get yaw dir, hence redeffing it as local yaw verus self.yaw
+				local yaw = self.yaw--(math.atan(vel.z / vel.x) + math.pi / 2)
+							
+				--don't check if not moving instead change direction
+				if yaw == yaw then --check for nan
+					--turn it into usable position modifier
+					local x = (math.sin(yaw) * -1)*1.5
+					local z = (math.cos(yaw))*1.5
+					local node = minetest.get_node({x=pos.x+x,y=pos.y,z=pos.z+z}).name
+					if minetest.registered_nodes[node].walkable == true then
+						--print("liquid jump")
+						self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
+					end			
+				end
 			end
 
 		end,
@@ -229,7 +247,6 @@ open_ai.register_mob = function(name,def)
 				self.update_timer = 0
 				self.jump(self)
 				self.path_find(self)
-				self.swim(self)	
 			end
 
 		end,
@@ -322,6 +339,7 @@ open_ai.register_mob = function(name,def)
 			
 			--debug to float mobs for now
 			local gravity = -10
+			self.swim(self)	
 			if self.float == true and self.liquid ~= 0 and self.liquid ~= nil then
 				gravity = self.liquid
 			end
@@ -334,6 +352,9 @@ open_ai.register_mob = function(name,def)
 		end,
 		swim = function(self)
 			self.liquid = minetest.registered_nodes[minetest.get_node(self.object:getpos()).name].liquid_viscosity
+			if self.liquid ~= 0 then
+				self.velocity = self.liquid
+			end
 		end,
 		
 		--check if a mob should follow a player when holding an item
