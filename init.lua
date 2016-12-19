@@ -321,7 +321,7 @@ open_ai.register_mob = function(name,def)
 					x = x + (vec.x * force) * 20
 					z = z + (vec.z * force) * 20
 				--ride in a minecart
-				elseif not object:is_player() and self.rides_cart == true and (object:get_luaentity() and object:get_luaentity().railtype and object ~= self.object) then
+				elseif not object:is_player() and self.rides_cart == true and (object:get_luaentity() and object ~= self.object and object:get_luaentity().old_dir and object:get_luaentity().driver == nil) then
 					self.ride_in_cart(self,object)
 				end
 			end
