@@ -24,6 +24,11 @@
  
  0.) running particles
  
+ 0.) make mobs get hurt in nodes that deal player damage
+ 0.) make mobs slow down or bounce on nodes that do that to players
+ 
+ 0.) particles when falling in water 
+ 
  0.) Make mobs collision detection detect boats, minecarts, and other physical things, somehow, possibly just don't collide with
  0.) item entities
  0.) Possibly lump movement in with collision detection in a few functions
@@ -125,7 +130,9 @@ open_ai.register_mob = function(name,def)
 		--Physical variables
 		old_position = nil,
 		yaw          = 0,
-		jump_height = def.jump_height,
+		jump_height  = def.jump_height,
+		float        = def.float,
+		liquid       = 0,
 		
 		
 		--Pathfinding variables
@@ -221,7 +228,8 @@ open_ai.register_mob = function(name,def)
 			if self.update_timer >= 0.1 then
 				self.update_timer = 0
 				self.jump(self)
-				self.path_find(self)			
+				self.path_find(self)
+				self.swim(self)	
 			end
 
 		end,
@@ -312,8 +320,20 @@ open_ai.register_mob = function(name,def)
 			local x   = math.sin(self.yaw) * -self.velocity
 			local z   = math.cos(self.yaw) * self.velocity
 			
-			self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})
-
+			--debug to float mobs for now
+			local gravity = -10
+			if self.float == true and self.liquid ~= 0 and self.liquid ~= nil then
+				gravity = self.liquid
+			end
+			--only do goal y velocity if swimming up
+			if gravity == -10 then
+				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})
+			else
+				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=gravity-vel.y,z=(z - vel.z + c_z)*self.acceleration})
+			end
+		end,
+		swim = function(self)
+			self.liquid = minetest.registered_nodes[minetest.get_node(self.object:getpos()).name].liquid_viscosity
 		end,
 		
 		--check if a mob should follow a player when holding an item
@@ -457,7 +477,13 @@ open_ai.register_mob = function(name,def)
 		
 		--what happens when you right click a mob
 		on_rightclick = function(self, clicker)
-		
+			
+			--undo leash
+			if self.leashed == true then
+				self.leashed = false
+				return
+			end
+			
 			local item = clicker:get_wielded_item()
 			
 			if item:to_string() ~= "" then
@@ -507,6 +533,7 @@ open_ai.register_mob("open_ai:test",{
 	acceleration = 3, --how quickly a mob gets up to max velocity
 	behavior_change_min = 3, -- the minimum time a mob will wait to change it's behavior
 	behavior_change_max = 5, -- the max time a mob will wait to change it's behavior
+	float = true, --if a mob tries to swim in liquids
 	
 	--mob aesthetic variables
 	visual = "mesh", --can be changed to anything for flexibility
