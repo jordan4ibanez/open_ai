@@ -402,7 +402,26 @@ open_ai.register_mob = function(name,def)
 			
 			self.object:set_animation({x=self.animation.walk_start,y=self.animation.walk_end}, speed, 0, true)
 		end,
-			
+		
+		--what happens when you hit a mob
+		on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
+		
+			if self.user_defined_on_punch then
+				self.user_defined_on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
+			end
+		end,
+		--user defined
+		user_defined_on_punch = def.on_punch,
+		
+		--what happens when you right click a mob
+		on_rightclick = function(self, clicker)
+			if self.user_defined_on_rightclick then
+				self.user_defined_on_rightclick(self, clicker)
+			end
+		end,
+		--user defined
+		user_defined_on_rightclick = def.on_rightclick,
+		
 		--what mobs do on each server step
 		on_step = function(self,dtime)
 			self.check_to_follow(self)
@@ -461,5 +480,11 @@ open_ai.register_mob("open_ai:test",{
 	end,
 	on_activate = function(self, staticdata, dtime_s)
 		print("activating")
+	end,
+	on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
+		print("hit")
+	end,
+	on_rightclick = function(self, clicker)
+		print("right clicked")
 	end,
 })
