@@ -365,6 +365,9 @@ open_ai.register_mob = function(name,def)
 						vertical = false,
 						texture = "default_stone.png",
 					})
+				else
+					print("less than 2 steps, stop")
+					self.velocity = 0
 				end
 				
 				if pos3 then
