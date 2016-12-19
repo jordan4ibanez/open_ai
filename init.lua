@@ -411,7 +411,7 @@ open_ai.register_mob = function(name,def)
 			end
 			if self.object:get_hp() <= 0 then
 				if self.user_defined_on_die then
-					self.user_defined_on_die(self,dtime)
+					self.user_defined_on_die(self, puncher, time_from_last_punch, tool_capabilities, dir)
 				end
 			end
 		end,
@@ -489,10 +489,10 @@ open_ai.register_mob("open_ai:test",{
 	on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
 		print("hit")
 	end,
+	on_die = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
+		print("poof")
+	end,
 	on_rightclick = function(self, clicker)
 		print("right clicked")
-	end,
-	on_die = function(self,dtime)
-		print("poof")
 	end,
 })
