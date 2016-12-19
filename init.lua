@@ -429,7 +429,7 @@ open_ai.register_mob = function(name,def)
 			self.update(self,dtime)
 			self.set_animation(self)
 			self.movement(self)
-			if self.user_defined then
+			if self.user_defined_on_step then
 				self.user_defined_on_step(self,dtime)
 			end
 		end,
