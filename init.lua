@@ -21,6 +21,10 @@
  0.) Make mobs define wether they float or sink in water
  
  0.) running particles
+ 
+ 0.) Make mobs collision detection detect boats, minecarts, and other physical things, somehow, possibly just don't collide with
+ 0.) item entities
+ 0.) Possibly lump movement in with collision detection in a few functions
      
  0.) when mob gets below 0.1 velocity do set velocity to make it stand still ONCE so mobs don't float and set acceleration to 0
  
@@ -82,6 +86,7 @@ open_ai = {}
 open_ai.register_mob = function(name,def)
 	minetest.register_entity(name, {
 		--Do simpler definition variables for ease of use
+		mob          = true,
 		collisionbox = {-def.width/2,-def.height/2,-def.width/2,def.width/2,def.height/2,def.width/2},
 		height       = def.height,
 		width        = def.width,
@@ -134,7 +139,6 @@ open_ai.register_mob = function(name,def)
 			--self.old_position = vector.floor(pos)
 			
 			self.yaw = (math.random(0, 360)/360) * (math.pi*2)
-			
 		end,
 		
 		
@@ -210,21 +214,14 @@ open_ai.register_mob = function(name,def)
 		--how a mob thinks
 		behavior = function(self,dtime)
 			self.behavior_timer = self.behavior_timer + dtime
-			
-			
 
-			
 			local vel = self.object:getvelocity()
-
-			
+	
 			--debug to find node the mob exists in
 			local testpos = self.object:getpos()
 			testpos.y = testpos.y-- - (self.height/2) -- the bottom of the entity
 			local vec_pos = vector.floor(testpos) -- the node that the mob exists in
-			
-
-
-					
+		
 			--debug test to change behavior
 			if self.following == false and self.behavior_timer >= self.behavior_timer_goal then
 				--print("Changed direction")
@@ -239,14 +236,44 @@ open_ai.register_mob = function(name,def)
 			end		
 		end,
 		
+		--how the mob collides with other mobs and players
+		collision = function(self)
+			local pos = self.object:getpos()
+			local vel = self.object:getvelocity()
+			local x   = 0
+			local z   = 0
+			for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, self.width)) do
+				--only collide with other mobs and players
+				if object:is_player() or (object:get_luaentity().mob == true and object ~= self.object) then
+					local pos2 = object:getpos()
+					local vec  = {x=pos.x-pos2.x, z=pos.z-pos2.z}
+					--push away harder the closer the collision is, could be used for mob cannons
+					--+0.5 to add player's collisionbox, could be modified to get other mobs widths
+					local force = (self.width+0.5) - vector.distance({x=pos.x,y=0,z=pos.z}, {x=pos2.x,y=0,z=pos2.z})--don't use y to get verticle distance
+										
+					--modify existing value to magnetize away from mulitiple entities/players
+					x = x + (vec.x * force) * 20
+					z = z + (vec.z * force) * 20
+					
+				end
+			end
+			return({x,z})
+		end,
 		
 		-- how a mob moves around the world
 		movement = function(self)
+			
+			local collide_values = self.collision(self)
+			c_x = collide_values[1]
+			c_z = collide_values[2]
+			--print(c_x,c_z)
 			--move mob to goal velocity using acceleration for smoothness
 			local vel = self.object:getvelocity()
 			local x   = math.sin(self.yaw) * -self.velocity
 			local z   = math.cos(self.yaw) * self.velocity
-			self.object:setacceleration({x=(x - vel.x)*self.acceleration,y=-10,z=(z - vel.z)*self.acceleration})
+			
+			self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})
+
 		end,
 		
 		--check if a mob should follow a player when holding an item
@@ -361,24 +388,22 @@ open_ai.register_mob = function(name,def)
 				end
 			end
 		end,
-
+		--how the mob sets it's mesh animation
 		set_animation = function(self)
 			local vel = self.object:getvelocity()
 			local speed = (math.abs(vel.x)+math.abs(vel.z))*self.animation.speed_normal --check this
 			
 			self.object:set_animation({x=self.animation.walk_start,y=self.animation.walk_end}, speed, 0, true)
 		end,
-		
+			
 		--what mobs do on each server step
 		on_step = function(self,dtime)
 			self.check_to_follow(self)
-		
 			self.behavior(self,dtime)
 			self.update(self,dtime)
 			self.set_animation(self)
 			self.movement(self)
 		end,
-		
 		
 		
 		
