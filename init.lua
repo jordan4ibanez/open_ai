@@ -324,7 +324,6 @@ open_ai.register_mob = function(name,def)
 					collisiondetection = false,
 					vertical = false,
 					texture = "open_ai_leash_particle.png",
-					playername = "singleplayer"
 				})
 			end
 		
