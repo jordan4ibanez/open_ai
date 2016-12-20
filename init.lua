@@ -283,7 +283,7 @@ open_ai.register_mob = function(name,def)
 		leashed_function = function(self,dtime)
 			local pos  = self.object:getpos()
 			local pos2 = minetest.get_player_by_name(self.target):getpos()
-			local vec = {x=pos.x-pos2.x, z=pos.z-pos2.z}
+			local vec = {x=pos.x-pos2.x,y=pos.y-pos2.y-1, z=pos.z-pos2.z}
 			--print(vec.x,vec.z)
 			self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
 			
@@ -293,11 +293,41 @@ open_ai.register_mob = function(name,def)
 			
 			--do max velocity if distance is over 2 else stop moving
 			local distance = vector.distance(pos,pos2)
+			
+			--run lead visual
+			self.leash_visual(self,distance,pos,vec)
+			
 			if distance < 2 then
 				distance = 0
 			end
 			self.velocity = distance
 			
+			
+		end,
+		
+		--a visual of the leash
+		leash_visual = function(self,distance,pos,vec)
+			--multiply times two if too far
+			distance = math.floor(distance*2) --make this an int for this function
+			
+			--divide the vec into a step to run through in the loop
+			local vec_steps = {x=vec.x/distance,y=vec.y/distance,z=vec.z/distance}
+			
+			--add particles to visualize leash
+			for i = 1,math.floor(distance) do
+				minetest.add_particle({
+					pos = {x=pos.x-(vec_steps.x*i), y=pos.y-(vec_steps.y*i), z=pos.z-(vec_steps.z*i)},
+					velocity = {x=0, y=0, z=0},
+					acceleration = {x=0, y=0, z=0},
+					expirationtime = 0.01,
+					size = 1,
+					collisiondetection = false,
+					vertical = false,
+					texture = "open_ai_leash_particle.png",
+					playername = "singleplayer"
+				})
+			end
+		
 		end,
 		
 		--how the mob collides with other mobs and players
