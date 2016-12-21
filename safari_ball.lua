@@ -46,6 +46,12 @@ minetest.register_entity("open_ai:safari_ball_no_mob", {
 		for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 1)) do
 			if not object:is_player() and (object:get_luaentity() and object:get_luaentity().mob == true and object ~= self.object) then
 				local name = object:get_luaentity().name
+				--catch sound
+				minetest.sound_play("open_ai_safari_ball_catch", {
+					max_hear_distance = 20,
+					gain = 10.0,
+					object = obj,
+				})
 				minetest.add_item(pos, "open_ai:safari_ball_"..name:match("^.-:(.*)"))
 				object:remove()
 				self.object:remove()
@@ -120,6 +126,11 @@ open_ai.register_safari_ball = function(mob_name, color)
 			if  (math.abs(self.oldvel.x) ~= 0 and vel.x == 0) or
 				(math.abs(self.oldvel.y) ~= 0 and vel.y == 0) or
 				(math.abs(self.oldvel.z) ~= 0 and vel.z == 0) then
+				--release sound
+				minetest.sound_play("open_ai_safari_ball_release", {
+					max_hear_distance = 20,
+					gain = 10.0,
+				})
 				minetest.add_item(pos, "open_ai:safari_ball_no_mob")--spawned
 				minetest.add_entity(pos, self.mob)
 				self.object:remove()
