@@ -94,6 +94,7 @@
 
 --global to enable other mods/packs to utilize the ai
 open_ai = {}
+open_ai.mob_count = 0
 
 dofile(minetest.get_modpath("open_ai").."/leash.lua")
 dofile(minetest.get_modpath("open_ai").."/safari_ball.lua")
@@ -151,6 +152,9 @@ open_ai.register_mob = function(name,def)
 		
 		--what mobs do when created
 		on_activate = function(self, staticdata, dtime_s)
+			--debug for max mobs
+			open_ai.mob_count = open_ai.mob_count + 1
+			minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
 			--debug for movement
 			self.velocity = math.random(1,self.max_velocity)+math.random()
 			
@@ -167,6 +171,12 @@ open_ai.register_mob = function(name,def)
 		end,
 		--user defined function
 		user_defined_on_activate = def.on_activate,
+		
+		--when the mob entity is deactivated
+		get_staticdata = function(self)
+			open_ai.mob_count = open_ai.mob_count - 1
+			minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
+		end
 		
 		
 		
