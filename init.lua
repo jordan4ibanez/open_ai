@@ -304,7 +304,11 @@ open_ai.register_mob = function(name,def)
 		leashed_function = function(self,dtime)
 			local pos  = self.object:getpos()
 			local pos2 = self.target:getpos()
-			local vec = {x=pos.x-pos2.x,y=pos.y-pos2.y-1, z=pos.z-pos2.z}
+			local c = 0
+			if self.target:is_player() then
+				c = 1
+			end
+			local vec = {x=pos.x-pos2.x,y=pos.y-pos2.y-c, z=pos.z-pos2.z}
 			--print(vec.x,vec.z)
 			self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
 			
