@@ -58,6 +58,10 @@
  
  12.) Document each function with line number in release
  
+ 13.) Mobs that build structures
+ 
+ 14.) Traders
+ 
  Or in other words, mobs that add fun and aesthetic to the game, yet do not take away performance
  
  This is my first "professional" level mod which I hope to complete
@@ -92,11 +96,13 @@
 open_ai = {}
 
 dofile(minetest.get_modpath("open_ai").."/leash.lua")
+dofile(minetest.get_modpath("open_ai").."/safari_ball.lua")
 
 open_ai.register_mob = function(name,def)
 	minetest.register_entity(name, {
 		--Do simpler definition variables for ease of use
 		mob          = true,
+		name         = name,
 		collisionbox = {-def.width/2,-def.height/2,-def.width/2,def.width/2,def.height/2,def.width/2},
 		height       = def.height,
 		width        = def.width,
@@ -585,6 +591,9 @@ open_ai.register_mob = function(name,def)
 		
 		
 	})
+	
+	open_ai.register_safari_ball(name,def.ball_color)
+	
 end
 
 --this is a test mob which can be used to learn how to make mobs using open ai - uses pilzadam's sheep mesh
@@ -621,6 +630,9 @@ open_ai.register_mob("open_ai:test",{
 	follow_item = "default:dry_grass_1", --if you're holding this a peaceful mob will follow you
 	leash       = true,
 	rides_cart  = true,
+	
+	--safari ball variables
+	ball_color = "FF0000",--color in hex, can be any color
 	
 	--user defined functions
 	on_step = function(self,dtime)
