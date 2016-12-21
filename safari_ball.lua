@@ -48,16 +48,6 @@ minetest.register_entity("open_ai:safari_ball_no_mob", {
 				return
 			end
 		end
-		--[[
-		for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 1)) do
-			if (object:get_luaentity() and object:get_luaentity().mob == true and object ~= self.object) then
-				local name = object:get_luaentity().name
-				minetest.add_entity(pos, name)
-				self.object:remove()
-				return
-			end
-		end
-		]]-- for mob safari ball
 		
 		
 		--safari balls turn into items if past timer and not moving
@@ -112,6 +102,7 @@ open_ai.register_safari_ball = function(mob_name, color)
 		textures = {texture},
 		timer = 0,
 		visual_size = {x = 0.4, y = 0.4},
+		mob = mob_name,
 		on_step = function(self, dtime)
 			local pos = self.object:getpos()
 			local vel = self.object:getvelocity()
@@ -119,13 +110,16 @@ open_ai.register_safari_ball = function(mob_name, color)
 			--only remove after a certain amount of time
 			self.timer = self.timer + dtime
 
-			--safari balls turn into items if past timer and not moving
+
+
+
+			--spawn mob in world
 			if self.oldvel and self.timer > 0.2 then
 			if  (math.abs(self.oldvel.x) ~= 0 and vel.x == 0) or
 				(math.abs(self.oldvel.y) ~= 0 and vel.y == 0) or
 				(math.abs(self.oldvel.z) ~= 0 and vel.z == 0) then
 				minetest.add_item(pos, "open_ai:safari_ball_no_mob")--return empty safari ball
-				print("spawn mob")
+				minetest.add_entity(pos, self.mob)
 				self.object:remove()
 			end
 			end
