@@ -35,14 +35,14 @@
  0.) when mob gets below 0.1 velocity do set velocity to make it stand still ONCE so mobs don't float and set acceleration to 0
  
  
- --[[
+ 
  Fishing
  fish mobs are drawn to lures
  Draw a line from lure to player and wind it up towards them
  can hook any mob with lure and drag it towards you
  make fish mobs drown and flop around on land
   
- ]]--
+ 
  
  
  
@@ -114,6 +114,7 @@ open_ai.mob_count = 0
 dofile(minetest.get_modpath("open_ai").."/leash.lua")
 dofile(minetest.get_modpath("open_ai").."/safari_ball.lua")
 dofile(minetest.get_modpath("open_ai").."/spawning.lua")
+dofile(minetest.get_modpath("open_ai").."/fishing.lua")
 
 open_ai.register_mob = function(name,def)
 	minetest.register_entity(name, {
@@ -335,7 +336,7 @@ open_ai.register_mob = function(name,def)
 			--do max velocity if distance is over 2 else stop moving
 			local distance = vector.distance(pos,pos2)
 			
-			--run lead visual
+			--run leash visual
 			self.leash_visual(self,distance,pos,vec)
 			
 			if distance < 2 then
