@@ -303,7 +303,7 @@ open_ai.register_mob = function(name,def)
 		--when a mob is on a leash
 		leashed_function = function(self,dtime)
 			local pos  = self.object:getpos()
-			local pos2 = minetest.get_player_by_name(self.target):getpos()
+			local pos2 = self.target:getpos()
 			local vec = {x=pos.x-pos2.x,y=pos.y-pos2.y-1, z=pos.z-pos2.z}
 			--print(vec.x,vec.z)
 			self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
@@ -452,7 +452,7 @@ open_ai.register_mob = function(name,def)
 			
 				local pos1 = self.object:getpos()
 				
-				local pos2 = minetest.get_player_by_name(self.target):getpos() -- this is the goal debug
+				local pos2 = self.target:getpos() -- this is the goal debug
 				
 				local path = nil
 				
@@ -572,16 +572,16 @@ open_ai.register_mob = function(name,def)
 				self.leashed = false
 				return
 			end
-			
+			--[[
 			local item = clicker:get_wielded_item()
 			
 			if item:to_string() ~= "" then
 				if item:to_table().name == "open_ai:leash" then
-					self.target  = clicker:get_player_name()
+					self.target  = clicker
 					self.leashed = true
 				end
 			end
-			
+			]]--
 			if self.user_defined_on_rightclick then
 				self.user_defined_on_rightclick(self, clicker)
 			end
