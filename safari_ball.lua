@@ -38,6 +38,28 @@ minetest.register_entity("open_ai:safari_ball_no_mob", {
 		self.timer = self.timer + dtime
 		
 		
+		--collect mob if exists
+		for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 1)) do
+			if (object:get_luaentity() and object:get_luaentity().mob == true and object ~= self.object) then
+				local name = object:get_luaentity().name
+				minetest.add_item(pos, "open_ai:safari_ball_"..name:match("^.-:(.*)"))
+				object:remove()
+				self.object:remove()
+				return
+			end
+		end
+		--[[
+		for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 1)) do
+			if (object:get_luaentity() and object:get_luaentity().mob == true and object ~= self.object) then
+				local name = object:get_luaentity().name
+				minetest.add_entity(pos, name)
+				self.object:remove()
+				return
+			end
+		end
+		]]-- for mob safari ball
+		
+		
 		--safari balls turn into items if past timer and not moving
 		if self.oldvel and self.timer > 0.2 then
 		if  (math.abs(self.oldvel.x) ~= 0 and vel.x == 0) or
@@ -49,7 +71,7 @@ minetest.register_entity("open_ai:safari_ball_no_mob", {
 		end
 		
 		
-		--collect mob if exists
+		
 		
 		
 		self.oldvel = vel
@@ -96,8 +118,7 @@ open_ai.register_safari_ball = function(mob_name, color)
 			
 			--only remove after a certain amount of time
 			self.timer = self.timer + dtime
-			
-			
+
 			--safari balls turn into items if past timer and not moving
 			if self.oldvel and self.timer > 0.2 then
 			if  (math.abs(self.oldvel.x) ~= 0 and vel.x == 0) or
@@ -108,16 +129,7 @@ open_ai.register_safari_ball = function(mob_name, color)
 				self.object:remove()
 			end
 			end
-			
-			
-			--collect mob if exists
-			
-			
 			self.oldvel = vel
 		end,
 	})
-
-	--entity, use grenade physics, if stopped, either capture mob, or turn back into item
-
-
 end
