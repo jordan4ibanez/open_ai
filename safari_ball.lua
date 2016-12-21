@@ -33,6 +33,7 @@ minetest.register_entity("open_ai:safari_ball_no_mob", {
 	visual_size = {x = 0.4, y = 0.4},
 	on_activate = function(self, staticdata, dtime_s)
 		self.object:set_armor_groups({immortal = 1})
+		self.object:setacceleration({x=0,y=-10,z=0})
 	end,
 	on_step = function(self, dtime)
 		local pos = self.object:getpos()
@@ -132,6 +133,7 @@ open_ai.register_safari_ball = function(mob_name, color)
 		color = color,
 		on_activate = function(self, staticdata, dtime_s)
 			self.object:set_armor_groups({immortal = 1})
+			self.object:setacceleration({x=0,y=-10,z=0})
 		end,
 		on_step = function(self, dtime)
 			local pos = self.object:getpos()

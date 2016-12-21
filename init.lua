@@ -98,6 +98,7 @@ open_ai.mob_count = 0
 
 dofile(minetest.get_modpath("open_ai").."/leash.lua")
 dofile(minetest.get_modpath("open_ai").."/safari_ball.lua")
+dofile(minetest.get_modpath("open_ai").."/spawning.lua")
 
 open_ai.register_mob = function(name,def)
 	minetest.register_entity(name, {
