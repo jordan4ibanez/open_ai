@@ -52,6 +52,24 @@ minetest.register_entity("open_ai:safari_ball_no_mob", {
 					gain = 10.0,
 					object = obj,
 				})
+				--particles
+				minetest.add_particlespawner({
+					amount = 80,
+					time = 0.01,
+					minpos = {x=pos.x, y=pos.y, z=pos.z},
+					maxpos = {x=pos.x, y=pos.y, z=pos.z},
+					minvel = {x=-5, y=-5, z=-5},
+					maxvel = {x=5, y=5, z=5},
+					minacc = {x=0, y=-10, z=0},
+					maxacc = {x=0, y=-10, z=0},
+					minexptime = 1,
+					maxexptime = 1,
+					minsize = 1,
+					maxsize = 1,
+					collisiondetection = true,
+					vertical = false,
+					texture = "open_ai_safari_ball_particle.png",
+				})
 				minetest.add_item(pos, "open_ai:safari_ball_"..name:match("^.-:(.*)"))
 				object:remove()
 				self.object:remove()
@@ -111,6 +129,7 @@ open_ai.register_safari_ball = function(mob_name, color)
 		timer = 0,
 		visual_size = {x = 0.4, y = 0.4},
 		mob = mob_name,
+		color = color,
 		on_activate = function(self, staticdata, dtime_s)
 			self.object:set_armor_groups({immortal = 1})
 		end,
@@ -130,6 +149,24 @@ open_ai.register_safari_ball = function(mob_name, color)
 				minetest.sound_play("open_ai_safari_ball_release", {
 					max_hear_distance = 20,
 					gain = 10.0,
+				})
+				--particles
+				minetest.add_particlespawner({
+					amount = 80,
+					time = 0.01,
+					minpos = {x=pos.x, y=pos.y, z=pos.z},
+					maxpos = {x=pos.x, y=pos.y, z=pos.z},
+					minvel = {x=-5, y=-5, z=-5},
+					maxvel = {x=5, y=5, z=5},
+					minacc = {x=0, y=-10, z=0},
+					maxacc = {x=0, y=-10, z=0},
+					minexptime = 1,
+					maxexptime = 1,
+					minsize = 1,
+					maxsize = 1,
+					collisiondetection = true,
+					vertical = false,
+					texture = "open_ai_safari_ball_particle.png^[colorize:#"..self.color,
 				})
 				minetest.add_item(pos, "open_ai:safari_ball_no_mob")--spawned
 				minetest.add_entity(pos, self.mob)
