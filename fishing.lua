@@ -1,27 +1,34 @@
 --fishing items and entities
-minetest.register_craftitem("open_ai:fishing_pole", {
+minetest.register_craftitem("open_ai:fishing_pole_lure", {
 	description = "Fishing Pole",
-	inventory_image = "open_ai_fishing_pole.png",
+	inventory_image = "open_ai_fishing_pole_lure.png^[transformFX",
 	stack_max = 1,
 	on_use = function(itemstack, user, pointed_thing)
 		local dir = user:get_look_dir()
 		local pos = user:getpos()
 		pos.y = pos.y + 1.5
-		dir.x = dir.x * 10
-		dir.y = dir.y * 10
-		dir.z = dir.z * 10
+		dir.x = dir.x * 15
+		dir.y = (dir.y * 15)+4
+		dir.z = dir.z * 15
 		local lure = minetest.add_entity(pos, "open_ai:lure")
 		lure:setvelocity({x=dir.x,y=dir.y,z=dir.z})
 		lure:get_luaentity().owner = user
 		
-		print("make this fishing pole_no lure ")
-		
+			
 		minetest.sound_play("open_ai_safari_ball_throw", {
 			pos = pos,
 			max_hear_distance = 10,
 			gain = 10.0,
 		})
+		itemstack:replace("open_ai:fishing_pole_no_lure")
+		
+		return(itemstack)
 	end,
+})
+minetest.register_craftitem("open_ai:fishing_pole_no_lure", {
+	description = "Fishing Pole (Cast)",
+	inventory_image = "open_ai_fishing_pole_no_lure.png^[transformFX",
+	stack_max = 1,
 })
 
 
@@ -35,6 +42,7 @@ minetest.register_entity("open_ai:lure", {
 	collisionbox = {-0.17,-0.17,-0.17,0.17,0.17,0.17},
 	velocity = 0,
 	acceleration = 4,
+	speed = 5,
 	in_water = false,
 	
 	on_activate = function(self, staticdata)
@@ -53,12 +61,31 @@ minetest.register_entity("open_ai:lure", {
 	end,
 	--when a mob is on a leash
 	lure_function = function(self,dtime)
-		--remove self if player doesn't exist
-		if self.owner == nil or not self.owner:is_player() then
+		local vel  = self.object:getvelocity()
+		--remove if owner is not in game
+		if not self.owner or not self.owner:is_player() then
 			self.object:remove()
 			return
 		end
-		local vel  = self.object:getvelocity()
+		
+		if self.oldvel then
+		if  (math.abs(self.oldvel.x) ~= 0 and vel.x == 0) or
+			(math.abs(self.oldvel.y) ~= 0 and vel.y == 0) or
+			(math.abs(self.oldvel.z) ~= 0 and vel.z == 0) then
+			
+			minetest.sound_play("open_ai_line_break", {
+				pos = pos2,
+				max_hear_distance = 10,
+				gain = 10.0,
+			})
+			self.object:remove()
+		end
+		end
+		
+		self.reel(self)
+		
+		
+		
 		local pos  = self.object:getpos()
 		local pos2 = self.owner:getpos()
 		local c = 0
@@ -67,11 +94,7 @@ minetest.register_entity("open_ai:lure", {
 		end
 		local vec = {x=pos.x-pos2.x,y=pos.y-pos2.y-c, z=pos.z-pos2.z}
 		
-		if self.owner:get_player_control().RMB == true then
-			self.velocity = 10
-		else
-			self.velocity = 0
-		end
+		
 		
 		--print(vec.x,vec.z)
 		self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
@@ -83,9 +106,27 @@ minetest.register_entity("open_ai:lure", {
 		--do max velocity if distance is over 2 else stop moving
 		local distance = vector.distance(pos,pos2)
 		
+		--collect reeled in lures
+		if distance < 2 and self.in_water == true then
+			minetest.sound_play("open_ai_collect_lure", {
+				pos = pos2,
+				max_hear_distance = 10,
+				gain = 10.0,
+			})
+			self.owner:set_wielded_item("open_ai:fishing_pole_lure")
+			self.object:remove()
+		end
+		
 		--run line visual
 		self.line_visual(self,distance,pos,vec)
 		
+		--how lures move
+		self.lure_movement(self,distance)
+		
+	end,
+	--how lures move
+	lure_movement = function(self,distance)
+		local vel  = self.object:getvelocity()
 		if distance < 2 then
 			distance = 0
 		end
@@ -94,7 +135,6 @@ minetest.register_entity("open_ai:lure", {
 		local z   = math.cos(self.yaw) * self.velocity
 		
 		--self.velocity = distance
-	--debug to float mobs for now
 		local gravity = -10
 		self.float(self)	
 		if self.liquid ~= 0 and self.liquid ~= nil then
@@ -103,15 +143,28 @@ minetest.register_entity("open_ai:lure", {
 		if self.in_water == false and self.liquid ~= 0 then
 			self.in_water = true
 		end
-		--only do goal y velocity if swimming up
+		--only do goal y velocity if floating up
 		if self.in_water == true then
 		if gravity == -10 then
 			self.object:setacceleration({x=(x - vel.x)*self.acceleration,y=-10,z=(z - vel.z)*self.acceleration})
 		else
-			self.object:setacceleration({x=(x - vel.x)*self.acceleration,y=gravity-vel.y,z=(z - vel.z)*self.acceleration})
+			self.object:setacceleration({x=(x - vel.x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z)*self.acceleration})
 		end
+		end
+		self.oldvel = vel
+	end,
+
+	--checks if player is reeling in
+	reel = function(self)
+
+		--reeling in
+		if self.owner:get_player_control().RMB == true then
+			self.velocity = self.speed
+		else
+			self.velocity = 0
 		end
 	end,
+	--makes lure float
 	float = function(self)
 		self.liquid = minetest.registered_nodes[minetest.get_node(self.object:getpos()).name].liquid_viscosity
 		if self.liquid ~= 0 then
