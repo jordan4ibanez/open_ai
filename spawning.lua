@@ -1,4 +1,5 @@
 --this is debug to spawn mobs
+--[[
 open_ai.spawn_step = 0
 open_ai.spawn_timer = math.random(10,30)
 minetest.register_globalstep(function(dtime)
@@ -17,3 +18,4 @@ minetest.register_globalstep(function(dtime)
 	open_ai.spawn_timer = math.random(10,30)
 	end
 end)
+]]--

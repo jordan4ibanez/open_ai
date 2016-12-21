@@ -34,6 +34,21 @@
      
  0.) when mob gets below 0.1 velocity do set velocity to make it stand still ONCE so mobs don't float and set acceleration to 0
  
+ 
+ --[[
+ Fishing
+ fish mobs are drawn to lures
+ Draw a line from lure to player and wind it up towards them
+ can hook any mob with lure and drag it towards you
+ make fish mobs drown and flop around on land
+  
+ ]]--
+ 
+ 
+ 
+ 
+ 
+ 
  1.) lightweight ai that walks around, stands, does something like eat grass
  
  2.) make mobs drown if drown = true in definition
