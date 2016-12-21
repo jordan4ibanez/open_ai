@@ -168,15 +168,20 @@ open_ai.register_mob = function(name,def)
 			if self.user_defined_on_activate then
 				self.user_defined_on_activate(self, staticdata, dtime_s)
 			end
+			
+			
 		end,
 		--user defined function
 		user_defined_on_activate = def.on_activate,
 		
 		--when the mob entity is deactivated
 		get_staticdata = function(self)
-			open_ai.mob_count = open_ai.mob_count - 1
-			minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
-		end
+			if self.activated == true then
+				open_ai.mob_count = open_ai.mob_count - 1
+				minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
+			end
+			self.activated = true
+		end,
 		
 		
 		
