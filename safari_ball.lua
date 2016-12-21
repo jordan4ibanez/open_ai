@@ -6,6 +6,7 @@ minetest.register_craftitem("open_ai:safari_ball_no_mob", {
 	on_use = function(itemstack, user, pointed_thing)
 		local v = user:get_look_dir()
 		local pos = user:getpos()
+		local vel = user:get_player_velocity()
 		pos.y = pos.y + 1.2
 		--play sound when throwing
 		minetest.sound_play("open_ai_safari_ball_throw", {
@@ -15,14 +16,14 @@ minetest.register_craftitem("open_ai:safari_ball_no_mob", {
 		})
 		local obj = minetest.add_entity(pos, "open_ai:safari_ball_no_mob")
 		
-		obj:setvelocity({x = v.x * 7, y = v.y * 7 + 4, z = v.z * 7})
+		obj:setvelocity({x = (v.x * 7)+vel.x, y = (v.y * 7 + 4)+vel.y, z = (v.z * 7)+vel.z})
 		obj:setacceleration({x = 0, y = -10, z = 0})
 
 		itemstack:take_item()
 		return itemstack
 	end,
 })
-
+--entity
 minetest.register_entity("open_ai:safari_ball_no_mob", {
 	physical = true,
 	collide_with_objects = false,
@@ -30,6 +31,9 @@ minetest.register_entity("open_ai:safari_ball_no_mob", {
 	textures = {"open_ai_safari_ball_top.png^open_ai_safari_ball_bottom.png"},
 	timer = 0,
 	visual_size = {x = 0.4, y = 0.4},
+	on_activate = function(self, staticdata, dtime_s)
+		self.object:set_armor_groups({immortal = 1})
+	end,
 	on_step = function(self, dtime)
 		local pos = self.object:getpos()
 		local vel = self.object:getvelocity()
@@ -40,7 +44,7 @@ minetest.register_entity("open_ai:safari_ball_no_mob", {
 		
 		--collect mob if exists
 		for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 1)) do
-			if (object:get_luaentity() and object:get_luaentity().mob == true and object ~= self.object) then
+			if not object:is_player() and (object:get_luaentity() and object:get_luaentity().mob == true and object ~= self.object) then
 				local name = object:get_luaentity().name
 				minetest.add_item(pos, "open_ai:safari_ball_"..name:match("^.-:(.*)"))
 				object:remove()
@@ -48,8 +52,7 @@ minetest.register_entity("open_ai:safari_ball_no_mob", {
 				return
 			end
 		end
-		
-		
+	
 		--safari balls turn into items if past timer and not moving
 		if self.oldvel and self.timer > 0.2 then
 		if  (math.abs(self.oldvel.x) ~= 0 and vel.x == 0) or
@@ -60,10 +63,6 @@ minetest.register_entity("open_ai:safari_ball_no_mob", {
 		end
 		end
 		
-		
-		
-		
-		
 		self.oldvel = vel
 	end,
 })
@@ -71,7 +70,7 @@ minetest.register_entity("open_ai:safari_ball_no_mob", {
 --function that creates safari ball item and entity
 open_ai.register_safari_ball = function(mob_name, color)
 	local texture = "open_ai_safari_ball_top.png^[colorize:#"..color.."^open_ai_safari_ball_bottom.png"
-
+	--item
 	minetest.register_craftitem("open_ai:safari_ball_"..mob_name:match("^.-:(.*)"), {
 		--remove modname and capitalize first letter
 		description = "Safari Ball Containing "..mob_name:match("^.-:(.*)"):gsub("^%l", string.upper),
@@ -79,6 +78,7 @@ open_ai.register_safari_ball = function(mob_name, color)
 		on_use = function(itemstack, user, pointed_thing)
 			local v = user:get_look_dir()
 			local pos = user:getpos()
+			local vel = user:get_player_velocity()
 			pos.y = pos.y + 1.2
 			--play sound when throwing
 			minetest.sound_play("open_ai_safari_ball_throw", {
@@ -88,13 +88,15 @@ open_ai.register_safari_ball = function(mob_name, color)
 			})
 			local obj = minetest.add_entity(pos, "open_ai:safari_ball_"..mob_name:match("^.-:(.*)"))
 			
-			obj:setvelocity({x = v.x * 7, y = v.y * 7 + 4, z = v.z * 7})
+			obj:setvelocity({x = (v.x * 7)+vel.x, y = (v.y * 7 + 4)+vel.y, z = (v.z * 7)+vel.z})
 			obj:setacceleration({x = 0, y = -10, z = 0})
 
 			itemstack:take_item()
 			return itemstack
 		end,
 	})
+	
+	--entity
 	minetest.register_entity("open_ai:safari_ball_"..mob_name:match("^.-:(.*)"), {
 		physical = true,
 		collide_with_objects = false,
@@ -103,6 +105,9 @@ open_ai.register_safari_ball = function(mob_name, color)
 		timer = 0,
 		visual_size = {x = 0.4, y = 0.4},
 		mob = mob_name,
+		on_activate = function(self, staticdata, dtime_s)
+			self.object:set_armor_groups({immortal = 1})
+		end,
 		on_step = function(self, dtime)
 			local pos = self.object:getpos()
 			local vel = self.object:getvelocity()
@@ -110,15 +115,12 @@ open_ai.register_safari_ball = function(mob_name, color)
 			--only remove after a certain amount of time
 			self.timer = self.timer + dtime
 
-
-
-
 			--spawn mob in world
 			if self.oldvel and self.timer > 0.2 then
 			if  (math.abs(self.oldvel.x) ~= 0 and vel.x == 0) or
 				(math.abs(self.oldvel.y) ~= 0 and vel.y == 0) or
 				(math.abs(self.oldvel.z) ~= 0 and vel.z == 0) then
-				minetest.add_item(pos, "open_ai:safari_ball_no_mob")--return empty safari ball
+				minetest.add_item(pos, "open_ai:safari_ball_no_mob")--spawned
 				minetest.add_entity(pos, self.mob)
 				self.object:remove()
 			end
