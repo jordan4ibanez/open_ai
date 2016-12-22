@@ -650,14 +650,14 @@ open_ai.register_mob("open_ai:test",{
 	
 	--mob aesthetic variables
 	visual = "mesh", --can be changed to anything for flexibility
-	mesh = "mobs_sheep.x",
-	textures = {"mobs_sheep.png"},
+	mesh = "sheeptest.b3d",
+	textures = {"sheeptest.png"},
 	animation = { --the animation keyframes and speed
 		speed_normal = 10,--animation speed
 		stand_start = 0,--standing animation start and end
-		stand_end = 80,
-		walk_start = 81,--walking animation start and end
-		walk_end = 100,
+		stand_end = 60,
+		walk_start = 71,--walking animation start and end
+		walk_end = 89,
 	},
 	automatic_face_movement_dir = -90.0, --what direction the mob faces in
 	makes_footstep_sound = true, --if a mob makes footstep sounds
