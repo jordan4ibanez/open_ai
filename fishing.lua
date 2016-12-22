@@ -44,6 +44,7 @@ minetest.register_entity("open_ai:lure", {
 	acceleration = 4,
 	speed = 5,
 	in_water = false,
+	attached = nil,
 	
 	on_activate = function(self, staticdata)
 		self.object:set_armor_groups({immortal=1})
@@ -97,7 +98,7 @@ minetest.register_entity("open_ai:lure", {
 		local vec = {x=pos.x-pos2.x,y=pos.y-pos2.y-c, z=pos.z-pos2.z}
 		
 		--hurt mobs and players
-		self.hurt_mobs(self,pos)
+		self.collect(self,pos)
 		
 		--print(vec.x,vec.z)
 		self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
@@ -156,15 +157,15 @@ minetest.register_entity("open_ai:lure", {
 		end
 		self.oldvel = vel
 	end,
-	--hurt mobs and players if in radius
-	hurt_mobs = function(self,pos)
+	--collect mob or player if in radius
+	collect = function(self,pos)
 		for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 1)) do
+			if self.attached == nil then
 			if (object:is_player() and object ~= self.owner) or (object:get_luaentity() and object:get_luaentity().mob == true and object ~= self.object) then
-				object:punch(self.object, 1.0,  {
-					full_punch_interval=1.0,
-					damage_groups = {fleshy=1}
-				}, vec)
+				object:set_attach(self.object, "", {x=0, y=0, z=0}, {x=0, y=0, z=0})
+				self.attached = object
 			
+			end
 			end
 		end
 	

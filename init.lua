@@ -436,7 +436,7 @@ open_ai.register_mob = function(name,def)
 			if gravity == -10 then
 				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})
 			else
-				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=gravity-vel.y,z=(z - vel.z + c_z)*self.acceleration})
+				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
 			end
 		end,
 		swim = function(self)
