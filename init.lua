@@ -308,7 +308,7 @@ open_ai.register_mob = function(name,def)
 				self.velocity = math.random(1,self.max_velocity)+math.random()
 				self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
 				self.behavior_timer = 0
-				print("randomly moving around")
+				--print("randomly moving around")
 			elseif self.following == true then
 				--print("following in behavior function")
 			elseif self.leashed == true then
@@ -325,6 +325,8 @@ open_ai.register_mob = function(name,def)
 				c = 1
 			end
 			local vec = {x=pos.x-pos2.x,y=pos.y-pos2.y-c, z=pos.z-pos2.z}
+			--how strong a leash is pulling up a mob
+			self.leash_pull = vec.y
 			--print(vec.x,vec.z)
 			self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
 			
@@ -432,10 +434,12 @@ open_ai.register_mob = function(name,def)
 				gravity = self.liquid
 			end
 			
-			--drag the mob up nodes with leash
+			--drag the mob up nodes with leash, or lift them up
 			if self.leashed == true then
-			if (x~= 0 and vel.x == 0) or (z ~= 0 and vel.z == 0) then
+			if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
 				gravity = self.velocity
+			elseif self.leash_pull < -3 then
+				gravity = (self.leash_pull-3)*-1
 			end
 			end
 			
@@ -628,7 +632,6 @@ open_ai.register_mob = function(name,def)
 			if self.user_defined_on_step then
 				self.user_defined_on_step(self,dtime)
 			end
-			print(self.target)
 		end,
 		
 		--a function that users can define
