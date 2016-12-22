@@ -223,7 +223,7 @@ open_ai.register_mob = function(name,def)
 					self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
 				end
 			--stupidly jump
-			elseif self.following == false and self.liquid == 0 then
+			elseif self.following == false and self.liquid == 0 and self.leashed == false then
 			
 				local vel = self.object:getvelocity()
 				
@@ -431,6 +431,14 @@ open_ai.register_mob = function(name,def)
 			if self.float == true and self.liquid ~= 0 and self.liquid ~= nil then
 				gravity = self.liquid
 			end
+			
+			--drag the mob up nodes with leash
+			if self.leashed == true then
+			if (x~= 0 and vel.x == 0) or (z ~= 0 and vel.z == 0) then
+				gravity = self.velocity
+			end
+			end
+			
 			--only do goal y velocity if swimming up
 			if gravity == -10 then
 				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})
@@ -590,6 +598,7 @@ open_ai.register_mob = function(name,def)
 			--undo leash
 			if self.leashed == true then
 				self.leashed = false
+				self.target = nil
 				return
 			end
 			--[[
