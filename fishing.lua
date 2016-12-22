@@ -97,7 +97,7 @@ minetest.register_entity("open_ai:lure", {
 		local vec = {x=pos.x-pos2.x,y=pos.y-pos2.y-c, z=pos.z-pos2.z}
 		
 		--hurt mobs and players
-		hurt_mobs(self,pos)
+		self.hurt_mobs(self,pos)
 		
 		--print(vec.x,vec.z)
 		self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
@@ -171,7 +171,7 @@ minetest.register_entity("open_ai:lure", {
 	end,
 	--checks if player is holding fishing pole
 	check_pole = function(self)
-		if self.owner:get_wielded_item():to_string() ~= "" then
+		if self.owner and self.owner:get_wielded_item():to_string() ~= "" then
 			if self.owner:get_wielded_item():to_table().name ~= "open_ai:fishing_pole_no_lure" then
 				minetest.sound_play("open_ai_line_break", {
 					pos = pos2,
