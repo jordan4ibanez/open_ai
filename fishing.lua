@@ -62,6 +62,7 @@ minetest.register_entity("open_ai:lure", {
 	--when a mob is on a leash
 	lure_function = function(self,dtime)
 		self.check_pole(self)
+		
 		local vel  = self.object:getvelocity()
 		--remove if owner is not in game
 		if not self.owner or not self.owner:is_player() then
@@ -95,7 +96,8 @@ minetest.register_entity("open_ai:lure", {
 		end
 		local vec = {x=pos.x-pos2.x,y=pos.y-pos2.y-c, z=pos.z-pos2.z}
 		
-		
+		--hurt mobs and players
+		hurt_mobs(self,pos)
 		
 		--print(vec.x,vec.z)
 		self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
@@ -155,7 +157,7 @@ minetest.register_entity("open_ai:lure", {
 		self.oldvel = vel
 	end,
 	--hurt mobs and players if in radius
-	hurt_mobs = function(self)
+	hurt_mobs = function(self,pos)
 		for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 1)) do
 			if (object:is_player() and object ~= self.owner) or (object:get_luaentity() and object:get_luaentity().mob == true and object ~= self.object) then
 				object:punch(self.object, 1.0,  {
