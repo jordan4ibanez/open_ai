@@ -75,7 +75,8 @@ minetest.register_entity("open_ai:lure", {
 			return
 		end
 		
-		self.snag(self)
+		--find if on land
+		self.touch_land(self)
 		
 		
 		local pos  = self.object:getpos()
@@ -122,9 +123,10 @@ minetest.register_entity("open_ai:lure", {
 		self.lure_movement(self,distance)
 		
 	end,
-	snag = function(self)
+	touch_land = function(self)
 		local vel = self.object:getvelocity()
 		local pos = self.object:getpos()
+		--[[
 		if self.oldvel and self.in_water == true then
 		if  (math.abs(self.oldvel.x) ~= 0 and vel.x == 0) or
 			(math.abs(self.oldvel.z) ~= 0 and vel.z == 0) then
@@ -141,10 +143,11 @@ minetest.register_entity("open_ai:lure", {
 			
 			self.object:remove()
 		end
-		elseif self.on_land == false and self.oldvel and self.in_water == false then
+		]]--
+		--switch to on land mode
+		if self.on_land == false and self.oldvel and self.in_water == false then
 		if (self.oldvel.y <= 0 and vel.y == 0) then
 			--on land
-			print("touchdown")
 			self.velocity = 0
 			self.on_land = true
 		end
@@ -174,8 +177,8 @@ minetest.register_entity("open_ai:lure", {
 			self.on_land = false
 		end
 		
-		--allow players to drag lures up nodes
-		if self.on_land == true then
+		--allow players to drag lures over nodes
+		if self.on_land == true or self.in_water == true then
 		if (x~= 0 and vel.x == 0) or (z ~= 0 and vel.z == 0) then
 			gravity = self.velocity
 		end

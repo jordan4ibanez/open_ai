@@ -155,7 +155,7 @@ open_ai.register_mob = function(name,def)
 		
 		--Pathfinding variables
 		path = {},
-		target = "singleplayer",
+		target = nil,
 		following = false,
 		
 		
@@ -619,6 +619,7 @@ open_ai.register_mob = function(name,def)
 			if self.user_defined_on_step then
 				self.user_defined_on_step(self,dtime)
 			end
+			print(self.target)
 		end,
 		
 		--a function that users can define
