@@ -206,7 +206,7 @@ minetest.register_entity("open_ai:lure", {
 	reel = function(self)
 
 		--reeling in
-		if self.owner:get_player_control().RMB == true then
+		if self.owner and self.owner:get_player_control().RMB == true then
 			self.velocity = self.speed
 			--reel sound attached to player
 			if self.reel_sound == nil then

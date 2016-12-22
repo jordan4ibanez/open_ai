@@ -38,16 +38,8 @@
  
  Fishing
  fish mobs are drawn to lures
- Draw a line from lure to player and wind it up towards them
- can hook any mob with lure and drag it towards you
  make fish mobs drown and flop around on land
   
- 
- 
- 
- 
- 
- 
  
  1.) lightweight ai that walks around, stands, does something like eat grass
  
@@ -76,6 +68,7 @@
  13.) Mobs that build structures
  
  14.) Traders
+ 14.) Traders can use stock gui or a 3d representation of a gui that shows the item physically in the world
  
  Or in other words, mobs that add fun and aesthetic to the game, yet do not take away performance
  
