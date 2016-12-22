@@ -154,6 +154,19 @@ minetest.register_entity("open_ai:lure", {
 		end
 		self.oldvel = vel
 	end,
+	--hurt mobs and players if in radius
+	hurt_mobs = function(self)
+		for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 1)) do
+			if (object:is_player() and object ~= self.owner) or (object:get_luaentity() and object:get_luaentity().mob == true and object ~= self.object) then
+				object:punch(self.object, 1.0,  {
+					full_punch_interval=1.0,
+					damage_groups = {fleshy=1}
+				}, vec)
+			
+			end
+		end
+	
+	end,
 	--checks if player is holding fishing pole
 	check_pole = function(self)
 		if self.owner:get_wielded_item():to_string() ~= "" then
