@@ -62,8 +62,10 @@ minetest.register_entity("open_ai:lure", {
 	end,
 	--when a mob is on a leash
 	lure_function = function(self,dtime)
+		self.reel(self)
+	
 		self.check_pole(self)
-		
+		local pos = self.object:getpos()
 		local vel  = self.object:getvelocity()
 		--remove if owner is not in game
 		if not self.owner or not self.owner:is_player() then
@@ -75,17 +77,21 @@ minetest.register_entity("open_ai:lure", {
 		if  (math.abs(self.oldvel.x) ~= 0 and vel.x == 0) or
 			(math.abs(self.oldvel.y) ~= 0 and vel.y == 0) or
 			(math.abs(self.oldvel.z) ~= 0 and vel.z == 0) then
-			
 			minetest.sound_play("open_ai_line_break", {
-				pos = pos2,
+				pos = pos,
 				max_hear_distance = 10,
 				gain = 10.0,
 			})
+			--stop reel sound
+			if self.reel_sound ~= nil then
+				minetest.sound_stop(self.reel_sound)
+				self.reel_sound = nil
+			end
+			
 			self.object:remove()
 		end
 		end
 		
-		self.reel(self)
 		
 		
 		
@@ -117,6 +123,11 @@ minetest.register_entity("open_ai:lure", {
 				max_hear_distance = 10,
 				gain = 10.0,
 			})
+			--stop reel sound
+			if self.reel_sound ~= nil then
+				minetest.sound_stop(self.reel_sound)
+				self.reel_sound = nil
+			end
 			self.owner:set_wielded_item("open_ai:fishing_pole_lure")
 			self.object:remove()
 		end
@@ -179,6 +190,11 @@ minetest.register_entity("open_ai:lure", {
 					max_hear_distance = 10,
 					gain = 10.0,
 				})
+				--stop reel sound
+				if self.reel_sound ~= nil then
+					minetest.sound_stop(self.reel_sound)
+					self.reel_sound = nil
+				end
 				self.object:remove()
 				
 			end
@@ -192,7 +208,21 @@ minetest.register_entity("open_ai:lure", {
 		--reeling in
 		if self.owner:get_player_control().RMB == true then
 			self.velocity = self.speed
+			--reel sound attached to player
+			if self.reel_sound == nil then
+				self.reel_sound = minetest.sound_play("open_ai_reel", {
+					max_hear_distance = 10,
+					gain = 10.0,
+					object = self.owner,
+					loop = true,
+				})
+			end
 		else
+			--stop reel sound
+			if self.reel_sound ~= nil then
+				minetest.sound_stop(self.reel_sound)
+				self.reel_sound = nil
+			end
 			self.velocity = 0
 		end
 	end,
