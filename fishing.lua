@@ -61,6 +61,7 @@ minetest.register_entity("open_ai:lure", {
 	end,
 	--when a mob is on a leash
 	lure_function = function(self,dtime)
+		self.check_pole(self)
 		local vel  = self.object:getvelocity()
 		--remove if owner is not in game
 		if not self.owner or not self.owner:is_player() then
@@ -153,6 +154,21 @@ minetest.register_entity("open_ai:lure", {
 		end
 		self.oldvel = vel
 	end,
+	--checks if player is holding fishing pole
+	check_pole = function(self)
+		if self.owner:get_wielded_item():to_string() ~= "" then
+			if self.owner:get_wielded_item():to_table().name ~= "open_ai:fishing_pole_no_lure" then
+				minetest.sound_play("open_ai_line_break", {
+					pos = pos2,
+					max_hear_distance = 10,
+					gain = 10.0,
+				})
+				self.object:remove()
+				
+			end
+		end
+	end,
+
 
 	--checks if player is reeling in
 	reel = function(self)
