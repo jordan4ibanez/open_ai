@@ -225,6 +225,14 @@ open_ai.register_mob = function(name,def)
 			--stupidly jump
 			elseif self.following == false and self.liquid == 0 then
 			
+				local vel = self.object:getvelocity()
+				
+				--return to save cpu
+				if vel.y ~= 0 then
+					return
+				end
+			
+			
 				--find out if node is underneath
 				local under_node = minetest.get_node({x=pos.x,y=pos.y-(self.height/2)-0.1,z=pos.z}).name
 				
@@ -233,8 +241,6 @@ open_ai.register_mob = function(name,def)
 					return
 				end
 				
-				
-				local vel = self.object:getvelocity()
 				
 				--commented out section is to use vel to get yaw dir, hence redeffing it as local yaw verus self.yaw
 				local yaw = self.yaw--(math.atan(vel.z / vel.x) + math.pi / 2)
