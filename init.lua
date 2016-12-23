@@ -767,10 +767,10 @@ open_ai.register_mob("open_ai:sheep",{
 		stand_end = 60,
 		walk_start = 71,--walking animation start and end
 		walk_end = 89,
-		-- jump start = 100,
-		-- jump end = 120,
+		-- jump_start = 100,
+		-- jump_end = 120,
 	},
-	automatic_face_movement_dir = -90.0, --what direction the mob faces in
+	automatic_face_movement_dir = 0,
 	makes_footstep_sound = true, --if a mob makes footstep sounds
 	visual_size = {x=2,y=2}, --resizes a mob mesh if needed
 	
