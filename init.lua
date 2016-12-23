@@ -635,7 +635,7 @@ open_ai.register_mob = function(name,def)
 			
 			if hp < self.old_hp then
 				--run texture function
-				self.hurt_texture(self,self.old_hp-hp)
+				self.hurt_texture(self,(self.old_hp-hp)*2)
 				--allow user to do something when hurt
 				if self.user_on_hurt then
 					self.user_on_hurt(self,self.old_hp-hp)
