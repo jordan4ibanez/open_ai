@@ -628,10 +628,16 @@ open_ai.register_mob = function(name,def)
 			if hp < self.old_hp then
 				--run texture function
 				self.hurt_texture(self,self.old_hp-hp)
+				--allow user to do something when hurt
+				if self.user_on_hurt then
+					self.user_on_hurt(self,self.old_hp-hp)
+				end
 			end
 			
 			self.old_hp = hp
 		end,
+		
+		user_on_hurt = def.on_hurt,
 		
 		--makes a mob turn red when hurt
 		hurt_texture = function(self,punches)
@@ -792,5 +798,9 @@ open_ai.register_mob("open_ai:test",{
 	end,
 	on_rightclick = function(self, clicker)
 		--print("right clicked")
+	end,
+	--when a mob gets hurt
+	on_hurt = function(self,hp_change)
+		--print(hp_change)
 	end,
 })
