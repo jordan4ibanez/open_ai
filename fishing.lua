@@ -48,7 +48,7 @@ minetest.register_entity("open_ai:lure", {
 	attached = nil,
 	rod_pull = 0,
 	test_pull = 0,
-	
+	reeling = false,
 	
 	on_activate = function(self, staticdata)
 		self.object:set_armor_groups({immortal=1})
@@ -173,7 +173,7 @@ minetest.register_entity("open_ai:lure", {
 		if self.on_land == true or self.in_water == true then
 		if (x~= 0 and vel.x == 0) or (z ~= 0 and vel.z == 0) then
 			gravity = self.velocity
-		elseif self.rod_pull < 0 and self.test_pull < 2 and self.velocity == 0 then
+		elseif self.rod_pull < 0 and self.test_pull < 2 and self.reeling == true then
 			gravity = (self.rod_pull-3)*-1
 		end
 		end
@@ -233,6 +233,7 @@ minetest.register_entity("open_ai:lure", {
 		--reeling in
 		if self.owner and self.owner:get_player_control().RMB == true then
 			self.velocity = self.speed
+			self.reeling = true
 			--reel sound attached to player
 			if self.reel_sound == nil then
 				self.reel_sound = minetest.sound_play("open_ai_reel", {
@@ -248,6 +249,7 @@ minetest.register_entity("open_ai:lure", {
 				minetest.sound_stop(self.reel_sound)
 				self.reel_sound = nil
 			end
+			self.reeling = false
 			self.velocity = 0
 		end
 	end,
