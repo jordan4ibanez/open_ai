@@ -183,6 +183,7 @@ open_ai.register_mob = function(name,def)
 				self.user_defined_on_activate(self, staticdata, dtime_s)
 			end
 			
+			self.old_hp = self.object:get_hp() 
 			
 		end,
 		--user defined function
@@ -610,8 +611,6 @@ open_ai.register_mob = function(name,def)
 						damage_groups = {fleshy=punches}
 					}, nil)
 					
-					--run texture function
-					self.hurt_texture(self,punches)
 				end
 			end
 			end
@@ -620,6 +619,19 @@ open_ai.register_mob = function(name,def)
 			--this is created here because it is unnecasary to define it in initial properties
 			self.old_vel = vel
 		end,
+		
+		--check if mob is hurt and show damage
+		check_for_hurt = function(self,dtime)
+			local hp = self.object:get_hp()
+			
+			if hp < self.old_hp then
+				--run texture function
+				self.hurt_texture(self,self.old_hp-hp)
+			end
+			
+			self.old_hp = hp
+		end,
+		
 		--makes a mob turn red when hurt
 		hurt_texture = function(self,punches)
 			self.fall_damaged_timer = 0
@@ -649,10 +661,11 @@ open_ai.register_mob = function(name,def)
 			self.hurt_texture_normalize(self,dtime)
 		end,
 		
+
+		
 		--what happens when you hit a mob
 		on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
-			--run texture function
-			self.hurt_texture(self,tool_capabilities.damage_groups.fleshy)
+			
 			if self.user_defined_on_punch then
 				self.user_defined_on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
 			end
@@ -694,6 +707,7 @@ open_ai.register_mob = function(name,def)
 		
 		--what mobs do on each server step
 		on_step = function(self,dtime)
+			self.check_for_hurt(self,dtime)
 			self.check_to_follow(self)
 			self.behavior(self,dtime)
 			self.update(self,dtime)
