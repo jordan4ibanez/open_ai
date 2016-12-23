@@ -609,14 +609,25 @@ open_ai.register_mob = function(name,def)
 						full_punch_interval=1.0,
 						damage_groups = {fleshy=punches}
 					}, nil)
-					self.fall_damaged_timer = 0
-					self.fall_damaged_limit = punches
-					print(dump(punches))
-					self.object:settexturemod("^[colorize:#ff0000:100")
+					
+					--run texture function
+					self.hurt_texture(self,punches)
 				end
 			end
 			end
 			
+			
+			--this is created here because it is unnecasary to define it in initial properties
+			self.old_vel = vel
+		end,
+		--makes a mob turn red when hurt
+		hurt_texture = function(self,punches)
+			self.fall_damaged_timer = 0
+			self.fall_damaged_limit = punches
+			self.object:settexturemod("^[colorize:#ff0000:100")
+		end,
+		--makes a mob turn back to normal after being hurt
+		hurt_texture_normalize = function(self,dtime)
 			--reset the mob texture and timer
 			if self.fall_damaged_timer ~= nil then
 				self.fall_damaged_timer = self.fall_damaged_timer + dtime
@@ -626,17 +637,16 @@ open_ai.register_mob = function(name,def)
 					self.fall_damaged_limit = nil
 				end
 			end
-			--this is created here because it is unnecasary to define it in initial properties
-			self.old_vel = vel
 		end,
 		
-		
 		--how the mob sets it's mesh animation
-		set_animation = function(self)
+		set_animation = function(self,dtime)
 			local vel = self.object:getvelocity()
 			local speed = (math.abs(vel.x)+math.abs(vel.z))*self.animation.speed_normal --check this
 			
 			self.object:set_animation({x=self.animation.walk_start,y=self.animation.walk_end}, speed, 0, true)
+			--run this in here because it is part of animation and textures
+			self.hurt_texture_normalize(self,dtime)
 		end,
 		
 		--what happens when you hit a mob
@@ -686,7 +696,7 @@ open_ai.register_mob = function(name,def)
 			self.check_to_follow(self)
 			self.behavior(self,dtime)
 			self.update(self,dtime)
-			self.set_animation(self)
+			self.set_animation(self,dtime)
 			self.movement(self)
 			self.velocity_damage(self,dtime)
 			if self.user_defined_on_step then
@@ -709,7 +719,7 @@ open_ai.register_mob("open_ai:test",{
 	--mob physical variables
 	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
 	--             {left, below, right, forwards, above , backwards}
-	collisionbox = {-0.7, -0.7,  -0.7, 0.7     ,  0.7   , 0.7      }, --the collision box of the mesh,
+	collisionbox = {-0.25, -0.0, -0.25, 0.25, 0.6, 0.25}, --the collision box of the mesh,
 	
 	--height = 0.7, --divide by 2 for even height }DEPRECATED due to having to center when creating meshes
 	--width  = 0.7, --divide by 2 for even width  }
