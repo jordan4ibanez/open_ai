@@ -271,14 +271,13 @@ open_ai.register_mob = function(name,def)
 							
 				--don't check if not moving instead change direction
 				if yaw == yaw then --check for nan
-					--turn it into usable position modifier
-					local x = (math.sin(yaw) * -1)*1.5
-					local z = (math.cos(yaw))*1.5
-					local node = minetest.get_node({x=pos.x+x,y=pos.y,z=pos.z+z}).name
-					if minetest.registered_nodes[node].walkable == true then
-						--print("liquid jump")
+					--use velocity calculation to find whether to jump
+					local x = (math.sin(yaw) * -1)
+					local z = (math.cos(yaw))
+					
+					if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
 						self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
-					end			
+					end		
 				end
 			end
 

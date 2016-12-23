@@ -173,7 +173,7 @@ minetest.register_entity("open_ai:lure", {
 		if self.on_land == true or self.in_water == true then
 		if (x~= 0 and vel.x == 0) or (z ~= 0 and vel.z == 0) then
 			gravity = self.velocity
-		elseif self.rod_pull < 0 and self.test_pull < 2 then
+		elseif self.rod_pull < 0 and self.test_pull < 2 and self.velocity == 0 then
 			gravity = (self.rod_pull-3)*-1
 		end
 		end
