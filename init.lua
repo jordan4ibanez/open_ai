@@ -133,6 +133,7 @@ open_ai.register_mob = function(name,def)
 		textures = def.textures,
 		makes_footstep_sound = def.makes_footstep_sound,
 		animation = def.animation,
+		visual_size = {x=def.visual_size.x, y=def.visual_size.y},
 		
 		
 		--Behavioral variables
@@ -734,7 +735,7 @@ open_ai.register_mob("open_ai:test",{
 	--mob physical variables
 	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
 	--             {left, below, right, forwards, above , backwards}
-	collisionbox = {-0.25, -0.0, -0.25, 0.25, 0.6, 0.25}, --the collision box of the mesh,
+	collisionbox = {-0.4, -0.0, -0.4, 0.4, 1.0, 0.4}, --the collision box of the mesh,
 	
 	--height = 0.7, --divide by 2 for even height }DEPRECATED due to having to center when creating meshes
 	--width  = 0.7, --divide by 2 for even width  }
@@ -766,6 +767,7 @@ open_ai.register_mob("open_ai:test",{
 	},
 	automatic_face_movement_dir = -90.0, --what direction the mob faces in
 	makes_footstep_sound = true, --if a mob makes footstep sounds
+	visual_size = {x=2,y=2}, --resizes a mob mesh if needed
 	
 	--mob behavior variables
 	follow_item = "default:dry_grass_1", --if you're holding this a peaceful mob will follow you
