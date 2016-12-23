@@ -651,7 +651,8 @@ open_ai.register_mob = function(name,def)
 		
 		--what happens when you hit a mob
 		on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
-		
+			--run texture function
+			self.hurt_texture(self,tool_capabilities.damage_groups.fleshy)
 			if self.user_defined_on_punch then
 				self.user_defined_on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
 			end
