@@ -118,7 +118,7 @@ open_ai.register_mob = function(name,def)
 		collisionbox = def.collisionbox,--{-def.width/2,-def.height/2,-def.width/2,def.width/2,def.height/2,def.width/2},
 		
 		height       = math.abs(def.collisionbox[2]), --sample from bottom of collisionbox - absolute for the sake of math
-		width        = def.collisionbox[1], --sample first item of collisionbox
+		width        = math.abs(def.collisionbox[1]), --sample first item of collisionbox
 		
 		physical     = def.physical,
 		collide_with_objects = false, -- for magnetic collision
