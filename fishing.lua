@@ -120,7 +120,7 @@ minetest.register_entity("open_ai:lure", {
 			end
 			if self.attached then
 				self.attached:set_detach()
-				self.attached:setvelocity({x=vec.x*2,y=math.abs(self.rod_pull)+6,z=vec.z*2})
+				self.attached:setvelocity({x=vec.x*-5,y=math.abs(self.rod_pull)+6,z=vec.z*-5})
 			end
 			self.owner:set_wielded_item("open_ai:fishing_pole_lure")
 			self.object:remove()
@@ -182,8 +182,10 @@ minetest.register_entity("open_ai:lure", {
 		if self.in_water == true or self.on_land == true then
 		if gravity == -10 then
 			self.object:setacceleration({x=(x - vel.x)*self.acceleration,y=-10,z=(z - vel.z)*self.acceleration})
-		else
+		elseif self.test_pull >= 2 then
 			self.object:setacceleration({x=(x - vel.x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z)*self.acceleration})
+		else --reel straight up slightly in front of player
+			self.object:setacceleration({x=(0 - vel.x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(0 - vel.z)*self.acceleration})
 		end
 		end
 		self.oldvel = vel
