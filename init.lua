@@ -151,6 +151,7 @@ open_ai.register_mob = function(name,def)
 		jump_height  = def.jump_height,
 		float        = def.float,
 		liquid       = 0,
+		hurt_velocity= def.hurt_velocity,
 		
 		
 		--Pathfinding variables
@@ -572,6 +573,61 @@ open_ai.register_mob = function(name,def)
 				end
 			end
 		end,
+		
+		--mob velocity damage x,y, and z
+		velocity_damage = function(self,dtime)
+			local vel = self.object:getvelocity()
+			if self.old_vel then
+			if  (vel.x == 0 and self.old_vel.x ~= 0) or
+				(vel.y == 0 and self.old_vel.y ~= 0) or
+				(vel.z == 0 and self.old_vel.z ~= 0) then
+				
+				local diff = vector.subtract(vel, self.old_vel)
+				
+				diff.x = math.ceil(math.abs(diff.x))
+				diff.y = math.ceil(math.abs(diff.y))
+				diff.z = math.ceil(math.abs(diff.z))
+				
+				local punches = 0
+				
+				--2 hearts of damage every 2 points over hurt_velocity
+				if diff.x > self.hurt_velocity then
+					punches = punches + (diff.x/2)
+				end
+				if diff.y > self.hurt_velocity then
+					punches = punches + (diff.y/2)
+				end
+				if diff.z > self.hurt_velocity then
+					punches = punches + (diff.z/2)
+				end
+				--hurt entity and set texture modifier
+				if punches > 0 then
+					self.object:punch(self.object, 1.0,  {
+						full_punch_interval=1.0,
+						damage_groups = {fleshy=punches}
+					}, nil)
+					self.fall_damaged_timer = 0
+					self.fall_damaged_limit = punches
+					print(dump(punches))
+					self.object:settexturemod("^[colorize:#ff0000:100")
+				end
+			end
+			end
+			
+			--reset the mob texture and timer
+			if self.fall_damaged_timer ~= nil then
+				self.fall_damaged_timer = self.fall_damaged_timer + dtime
+				if self.fall_damaged_timer >= self.fall_damaged_limit then
+					self.object:settexturemod("")
+					self.fall_damaged_timer = nil
+					self.fall_damaged_limit = nil
+				end
+			end
+			--this is created here because it is unnecasary to define it in initial properties
+			self.old_vel = vel
+		end,
+		
+		
 		--how the mob sets it's mesh animation
 		set_animation = function(self)
 			local vel = self.object:getvelocity()
@@ -629,6 +685,7 @@ open_ai.register_mob = function(name,def)
 			self.update(self,dtime)
 			self.set_animation(self)
 			self.movement(self)
+			self.velocity_damage(self,dtime)
 			if self.user_defined_on_step then
 				self.user_defined_on_step(self,dtime)
 			end
@@ -651,7 +708,8 @@ open_ai.register_mob("open_ai:test",{
 	width  = 0.7, --divide by 2 for even width
 	physical = true, --if the mob collides with the world, false is useful for ghosts
 	jump_height = 5, --how high a mob will jump
-	health = 20,
+	health = 20, --how much health a mob has
+	hurt_velocity = 7, --how fast a mob can hit a node in any direction before taking damage
 	
 	--mob movement variables
 	max_velocity = 3, --set the max velocity that a mob can move
