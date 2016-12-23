@@ -34,6 +34,7 @@
      
  0.) when mob gets below 0.1 velocity do set velocity to make it stand still ONCE so mobs don't float and set acceleration to 0
  
+ 0.) if mob stops moving and def.opens_doors = true and in door then open door to leave
  
  
  Fishing
@@ -173,7 +174,7 @@ open_ai.register_mob = function(name,def)
 		on_activate = function(self, staticdata, dtime_s)
 			--debug for max mobs
 			open_ai.mob_count = open_ai.mob_count + 1
-			minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
+			--minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
 			--debug for movement
 			self.velocity = math.random(1,self.max_velocity)+math.random()
 			
@@ -201,7 +202,7 @@ open_ai.register_mob = function(name,def)
 		get_staticdata = function(self)
 			if self.activated == true then
 				open_ai.mob_count = open_ai.mob_count - 1
-				minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
+				--minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
 			end
 			self.activated = true
 		end,
@@ -637,7 +638,7 @@ open_ai.register_mob = function(name,def)
 			
 			if hp < self.old_hp then
 				--run texture function
-				self.hurt_texture(self,(self.old_hp-hp)*2)
+				self.hurt_texture(self,(self.old_hp-hp)/4)
 				--allow user to do something when hurt
 				if self.user_on_hurt then
 					self.user_on_hurt(self,self.old_hp-hp)
@@ -653,12 +654,12 @@ open_ai.register_mob = function(name,def)
 		hurt_texture = function(self,punches)
 			self.fall_damaged_timer = 0
 			self.fall_damaged_limit = punches
-			self.object:settexturemod("^[colorize:#ff0000:100")
 		end,
 		--makes a mob turn back to normal after being hurt
 		hurt_texture_normalize = function(self,dtime)
 			--reset the mob texture and timer
 			if self.fall_damaged_timer ~= nil then
+				self.object:settexturemod("^[colorize:#ff0000:100")
 				self.fall_damaged_timer = self.fall_damaged_timer + dtime
 				if self.fall_damaged_timer >= self.fall_damaged_limit then
 					self.object:settexturemod("")
