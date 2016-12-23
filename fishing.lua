@@ -46,7 +46,9 @@ minetest.register_entity("open_ai:lure", {
 	in_water = false,
 	on_land = false,
 	attached = nil,
-	
+	rod_pull = 0,
+	test_pull = 0,
+	reeling = false,
 	
 	on_activate = function(self, staticdata)
 		self.object:set_armor_groups({immortal=1})
@@ -87,6 +89,10 @@ minetest.register_entity("open_ai:lure", {
 		end
 		local vec = {x=pos.x-pos2.x,y=pos.y-pos2.y-c, z=pos.z-pos2.z}
 		
+		--allow players to pull up lines off a bridge or ledge
+		self.test_pull = vector.distance({x=pos.x,y=0,z=pos.z},{x=pos2.x,y=0,z=pos2.z})
+		self.rod_pull = vec.y
+		
 		--hurt mobs and players
 		self.collect(self,pos)
 		
@@ -112,6 +118,10 @@ minetest.register_entity("open_ai:lure", {
 				minetest.sound_stop(self.reel_sound)
 				self.reel_sound = nil
 			end
+			if self.attached then
+				self.attached:set_detach()
+				self.attached:setvelocity({x=vec.x*-5,y=math.abs(self.rod_pull)+6,z=vec.z*-5})
+			end
 			self.owner:set_wielded_item("open_ai:fishing_pole_lure")
 			self.object:remove()
 		end
@@ -126,24 +136,6 @@ minetest.register_entity("open_ai:lure", {
 	touch_land = function(self)
 		local vel = self.object:getvelocity()
 		local pos = self.object:getpos()
-		--[[
-		if self.oldvel and self.in_water == true then
-		if  (math.abs(self.oldvel.x) ~= 0 and vel.x == 0) or
-			(math.abs(self.oldvel.z) ~= 0 and vel.z == 0) then
-			minetest.sound_play("open_ai_line_break", {
-				pos = pos,
-				max_hear_distance = 10,
-				gain = 10.0,
-			})
-			--stop reel sound
-			if self.reel_sound ~= nil then
-				minetest.sound_stop(self.reel_sound)
-				self.reel_sound = nil
-			end
-			
-			self.object:remove()
-		end
-		]]--
 		--switch to on land mode
 		if self.on_land == false and self.oldvel and self.in_water == false then
 		if (self.oldvel.y <= 0 and vel.y == 0) then
@@ -177,10 +169,12 @@ minetest.register_entity("open_ai:lure", {
 			self.on_land = false
 		end
 		
-		--allow players to drag lures over nodes
+		--allow players to drag lures over nodes and pull straight up
 		if self.on_land == true or self.in_water == true then
 		if (x~= 0 and vel.x == 0) or (z ~= 0 and vel.z == 0) then
 			gravity = self.velocity
+		elseif self.rod_pull < 0 and self.test_pull < 2 and self.reeling == true then
+			gravity = (self.rod_pull-3)*-1
 		end
 		end
 		
@@ -188,8 +182,10 @@ minetest.register_entity("open_ai:lure", {
 		if self.in_water == true or self.on_land == true then
 		if gravity == -10 then
 			self.object:setacceleration({x=(x - vel.x)*self.acceleration,y=-10,z=(z - vel.z)*self.acceleration})
-		else
+		elseif self.test_pull >= 2 then
 			self.object:setacceleration({x=(x - vel.x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z)*self.acceleration})
+		else --reel straight up slightly in front of player
+			self.object:setacceleration({x=(0 - vel.x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(0 - vel.z)*self.acceleration})
 		end
 		end
 		self.oldvel = vel
@@ -239,6 +235,7 @@ minetest.register_entity("open_ai:lure", {
 		--reeling in
 		if self.owner and self.owner:get_player_control().RMB == true then
 			self.velocity = self.speed
+			self.reeling = true
 			--reel sound attached to player
 			if self.reel_sound == nil then
 				self.reel_sound = minetest.sound_play("open_ai_reel", {
@@ -254,6 +251,7 @@ minetest.register_entity("open_ai:lure", {
 				minetest.sound_stop(self.reel_sound)
 				self.reel_sound = nil
 			end
+			self.reeling = false
 			self.velocity = 0
 		end
 	end,
