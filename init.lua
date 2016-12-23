@@ -38,16 +38,8 @@
  
  Fishing
  fish mobs are drawn to lures
- Draw a line from lure to player and wind it up towards them
- can hook any mob with lure and drag it towards you
  make fish mobs drown and flop around on land
   
- 
- 
- 
- 
- 
- 
  
  1.) lightweight ai that walks around, stands, does something like eat grass
  
@@ -76,6 +68,7 @@
  13.) Mobs that build structures
  
  14.) Traders
+ 14.) Traders can use stock gui or a 3d representation of a gui that shows the item physically in the world
  
  Or in other words, mobs that add fun and aesthetic to the game, yet do not take away performance
  
@@ -121,9 +114,12 @@ open_ai.register_mob = function(name,def)
 		--Do simpler definition variables for ease of use
 		mob          = true,
 		name         = name,
-		collisionbox = {-def.width/2,-def.height/2,-def.width/2,def.width/2,def.height/2,def.width/2},
-		height       = def.height,
-		width        = def.width,
+		
+		collisionbox = def.collisionbox,--{-def.width/2,-def.height/2,-def.width/2,def.width/2,def.height/2,def.width/2},
+		
+		height       = math.abs(def.collisionbox[2]), --sample from bottom of collisionbox - absolute for the sake of math
+		width        = def.collisionbox[1], --sample first item of collisionbox
+		
 		physical     = def.physical,
 		collide_with_objects = false, -- for magnetic collision
 		max_velocity = def.max_velocity,
@@ -137,6 +133,7 @@ open_ai.register_mob = function(name,def)
 		textures = def.textures,
 		makes_footstep_sound = def.makes_footstep_sound,
 		animation = def.animation,
+		visual_size = {x=def.visual_size.x, y=def.visual_size.y},
 		
 		
 		--Behavioral variables
@@ -158,11 +155,12 @@ open_ai.register_mob = function(name,def)
 		jump_height  = def.jump_height,
 		float        = def.float,
 		liquid       = 0,
+		hurt_velocity= def.hurt_velocity,
 		
 		
 		--Pathfinding variables
 		path = {},
-		target = "singleplayer",
+		target = nil,
 		following = false,
 		
 		
@@ -186,6 +184,7 @@ open_ai.register_mob = function(name,def)
 				self.user_defined_on_activate(self, staticdata, dtime_s)
 			end
 			
+			self.old_hp = self.object:get_hp() 
 			
 		end,
 		--user defined function
@@ -230,32 +229,38 @@ open_ai.register_mob = function(name,def)
 					self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
 				end
 			--stupidly jump
-			elseif self.following == false and self.liquid == 0 then
+			elseif self.following == false and self.liquid == 0 and self.leashed == false then
+			
+				local vel = self.object:getvelocity()
+				
+				--return to save cpu
+				if vel.y ~= 0 then
+					return
+				end
+			
 			
 				--find out if node is underneath
-				local under_node = minetest.get_node({x=pos.x,y=pos.y-(self.height/2)-0.1,z=pos.z}).name
+				local under_node = minetest.get_node({x=pos.x,y=pos.y-self.height-0.1,z=pos.z}).name
 				
 				if minetest.registered_nodes[under_node].walkable == false then
 					--print("JUMP FAILURE")
 					return
 				end
 				
-				
-				local vel = self.object:getvelocity()
-				
-				--commented out section is to use vel to get yaw dir, hence redeffing it as local yaw verus self.yaw
-				local yaw = self.yaw--(math.atan(vel.z / vel.x) + math.pi / 2)
+				local yaw = self.yaw
 							
 				--don't check if not moving instead change direction
 				if yaw == yaw then --check for nan
-					--turn it into usable position modifier
-					local x = (math.sin(yaw) * -1)*1.5
-					local z = (math.cos(yaw))*1.5
-					local node = minetest.get_node({x=pos.x+x,y=pos.y,z=pos.z+z}).name
-					if minetest.registered_nodes[node].walkable == true then
-						--print("jump")
+					
+					--use velocity calculation to find whether to jump
+					local x = (math.sin(yaw) * -1)
+					local z = (math.cos(yaw))
+					
+					if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
 						self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
-					end			
+					end
+
+								
 				end
 			elseif self.liquid ~= 0 then
 				
@@ -309,7 +314,7 @@ open_ai.register_mob = function(name,def)
 				self.velocity = math.random(1,self.max_velocity)+math.random()
 				self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
 				self.behavior_timer = 0
-				print("randomly moving around")
+				--print("randomly moving around")
 			elseif self.following == true then
 				--print("following in behavior function")
 			elseif self.leashed == true then
@@ -326,6 +331,8 @@ open_ai.register_mob = function(name,def)
 				c = 1
 			end
 			local vec = {x=pos.x-pos2.x,y=pos.y-pos2.y-c, z=pos.z-pos2.z}
+			--how strong a leash is pulling up a mob
+			self.leash_pull = vec.y
 			--print(vec.x,vec.z)
 			self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
 			
@@ -432,11 +439,21 @@ open_ai.register_mob = function(name,def)
 			if self.float == true and self.liquid ~= 0 and self.liquid ~= nil then
 				gravity = self.liquid
 			end
+			
+			--drag the mob up nodes with leash, or lift them up
+			if self.leashed == true then
+			if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
+				gravity = self.velocity
+			elseif self.leash_pull < -3 then
+				gravity = (self.leash_pull-3)*-1
+			end
+			end
+			
 			--only do goal y velocity if swimming up
 			if gravity == -10 then
 				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})
 			else
-				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=gravity-vel.y,z=(z - vel.z + c_z)*self.acceleration})
+				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
 			end
 		end,
 		swim = function(self)
@@ -561,17 +578,101 @@ open_ai.register_mob = function(name,def)
 				end
 			end
 		end,
+		
+		--mob velocity damage x,y, and z
+		velocity_damage = function(self,dtime)
+			local vel = self.object:getvelocity()
+			if self.old_vel then
+			if  (vel.x == 0 and self.old_vel.x ~= 0) or
+				(vel.y == 0 and self.old_vel.y ~= 0) or
+				(vel.z == 0 and self.old_vel.z ~= 0) then
+				
+				local diff = vector.subtract(vel, self.old_vel)
+				
+				diff.x = math.ceil(math.abs(diff.x))
+				diff.y = math.ceil(math.abs(diff.y))
+				diff.z = math.ceil(math.abs(diff.z))
+				
+				local punches = 0
+				
+				--2 hearts of damage every 2 points over hurt_velocity
+				if diff.x > self.hurt_velocity then
+					punches = punches + (diff.x/2)
+				end
+				if diff.y > self.hurt_velocity then
+					punches = punches + (diff.y/2)
+				end
+				if diff.z > self.hurt_velocity then
+					punches = punches + (diff.z/2)
+				end
+				--hurt entity and set texture modifier
+				if punches > 0 then
+					self.object:punch(self.object, 1.0,  {
+						full_punch_interval=1.0,
+						damage_groups = {fleshy=punches}
+					}, nil)
+					
+				end
+			end
+			end
+			
+			
+			--this is created here because it is unnecasary to define it in initial properties
+			self.old_vel = vel
+		end,
+		
+		--check if mob is hurt and show damage
+		check_for_hurt = function(self,dtime)
+			local hp = self.object:get_hp()
+			
+			if hp < self.old_hp then
+				--run texture function
+				self.hurt_texture(self,self.old_hp-hp)
+				--allow user to do something when hurt
+				if self.user_on_hurt then
+					self.user_on_hurt(self,self.old_hp-hp)
+				end
+			end
+			
+			self.old_hp = hp
+		end,
+		
+		user_on_hurt = def.on_hurt,
+		
+		--makes a mob turn red when hurt
+		hurt_texture = function(self,punches)
+			self.fall_damaged_timer = 0
+			self.fall_damaged_limit = punches
+			self.object:settexturemod("^[colorize:#ff0000:100")
+		end,
+		--makes a mob turn back to normal after being hurt
+		hurt_texture_normalize = function(self,dtime)
+			--reset the mob texture and timer
+			if self.fall_damaged_timer ~= nil then
+				self.fall_damaged_timer = self.fall_damaged_timer + dtime
+				if self.fall_damaged_timer >= self.fall_damaged_limit then
+					self.object:settexturemod("")
+					self.fall_damaged_timer = nil
+					self.fall_damaged_limit = nil
+				end
+			end
+		end,
+		
 		--how the mob sets it's mesh animation
-		set_animation = function(self)
+		set_animation = function(self,dtime)
 			local vel = self.object:getvelocity()
 			local speed = (math.abs(vel.x)+math.abs(vel.z))*self.animation.speed_normal --check this
 			
 			self.object:set_animation({x=self.animation.walk_start,y=self.animation.walk_end}, speed, 0, true)
+			--run this in here because it is part of animation and textures
+			self.hurt_texture_normalize(self,dtime)
 		end,
+		
+
 		
 		--what happens when you hit a mob
 		on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
-		
+			
 			if self.user_defined_on_punch then
 				self.user_defined_on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
 			end
@@ -591,18 +692,10 @@ open_ai.register_mob = function(name,def)
 			--undo leash
 			if self.leashed == true then
 				self.leashed = false
+				self.target = nil
 				return
 			end
-			--[[
-			local item = clicker:get_wielded_item()
-			
-			if item:to_string() ~= "" then
-				if item:to_table().name == "open_ai:leash" then
-					self.target  = clicker
-					self.leashed = true
-				end
-			end
-			]]--
+
 			if self.user_defined_on_rightclick then
 				self.user_defined_on_rightclick(self, clicker)
 			end
@@ -612,11 +705,13 @@ open_ai.register_mob = function(name,def)
 		
 		--what mobs do on each server step
 		on_step = function(self,dtime)
+			self.check_for_hurt(self,dtime)
 			self.check_to_follow(self)
 			self.behavior(self,dtime)
 			self.update(self,dtime)
-			self.set_animation(self)
+			self.set_animation(self,dtime)
 			self.movement(self)
+			self.velocity_damage(self,dtime)
 			if self.user_defined_on_step then
 				self.user_defined_on_step(self,dtime)
 			end
@@ -628,18 +723,23 @@ open_ai.register_mob = function(name,def)
 		
 	})
 	
-	open_ai.register_safari_ball(name,def.ball_color)
+	open_ai.register_safari_ball(name,def.ball_color,math.abs(def.collisionbox[2]))
 	
 end
 
 --this is a test mob which can be used to learn how to make mobs using open ai - uses FreeLikeGNU's sheep mesh
-open_ai.register_mob("open_ai:test",{
+open_ai.register_mob("open_ai:sheep",{
 	--mob physical variables
-	height = 0.7, --divide by 2 for even height
-	width  = 0.7, --divide by 2 for even width
+	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
+	--             {left, below, right, forwards, above , backwards}
+	collisionbox = {-0.4, -0.0, -0.4, 0.4, 1.0, 0.4}, --the collision box of the mesh,
+	
+	--height = 0.7, --divide by 2 for even height }DEPRECATED due to having to center when creating meshes
+	--width  = 0.7, --divide by 2 for even width  }
 	physical = true, --if the mob collides with the world, false is useful for ghosts
 	jump_height = 5, --how high a mob will jump
-	health = 20,
+	health = 20, --how much health a mob has
+	hurt_velocity = 7, --how fast a mob can hit a node in any direction before taking damage
 	
 	--mob movement variables
 	max_velocity = 3, --set the max velocity that a mob can move
@@ -664,14 +764,16 @@ open_ai.register_mob("open_ai:test",{
 	},
 	automatic_face_movement_dir = 0,
 	makes_footstep_sound = true, --if a mob makes footstep sounds
+	visual_size = {x=2,y=2}, --resizes a mob mesh if needed
 	
 	--mob behavior variables
 	follow_item = "default:dry_grass_1", --if you're holding this a peaceful mob will follow you
 	leash       = true,
 	rides_cart  = true,
+	hostile     = false,
 	
 	--safari ball variables
-	ball_color = "FF0000",--color in hex, can be any color
+	ball_color = "0000ff",--color in hex, can be any color 
 	
 	--user defined functions
 	on_step = function(self,dtime)
@@ -688,5 +790,120 @@ open_ai.register_mob("open_ai:test",{
 	end,
 	on_rightclick = function(self, clicker)
 		--print("right clicked")
+	end,
+	--when a mob gets hurt
+	on_hurt = function(self,hp_change)
+		--print(hp_change)
+	end,
+})
+
+
+
+
+
+--a silly santa testmob
+open_ai.register_mob("open_ai:santa",{
+	--mob physical variables
+	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
+	--             {left, below, right, forwards, above , backwards}
+	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3}, --the collision box of the mesh,
+	
+	--height = 0.7, --divide by 2 for even height }DEPRECATED due to having to center when creating meshes
+	--width  = 0.7, --divide by 2 for even width  }
+	physical = true, --if the mob collides with the world, false is useful for ghosts
+	jump_height = 5, --how high a mob will jump
+	health = 20, --how much health a mob has
+	hurt_velocity = 7, --how fast a mob can hit a node in any direction before taking damage
+	
+	--mob movement variables
+	max_velocity = 3, --set the max velocity that a mob can move
+	acceleration = 3, --how quickly a mob gets up to max velocity
+	behavior_change_min = 3, -- the minimum time a mob will wait to change it's behavior
+	behavior_change_max = 5, -- the max time a mob will wait to change it's behavior
+	float = true, --if a mob tries to swim in liquids
+	
+	--mob aesthetic variables
+	visual = "mesh", --can be changed to anything for flexibility
+	mesh = "character.b3d",
+	textures = {"open_ai_santa.png"},
+        -- sheared textures = {"sheeptest-sheared.png"},
+	animation = { --the animation keyframes and speed
+		speed_normal = 10,--animation speed
+		stand_start = 0,--standing animation start and end
+		stand_end = 60,
+		walk_start = 168,--walking animation start and end
+		walk_end = 187,
+		-- jump start = 100,
+		-- jump end = 120,
+	},
+	automatic_face_movement_dir = -90.0, --what direction the mob faces in
+	makes_footstep_sound = true, --if a mob makes footstep sounds
+	visual_size = {x=1,y=1}, --resizes a mob mesh if needed
+	
+	--mob behavior variables
+	follow_item = "default:dry_grass_1", --if you're holding this a peaceful mob will follow you
+	leash       = true,
+	rides_cart  = true,
+	hostile     = false,
+	
+	--safari ball variables
+	ball_color = "FF0000",--color in hex, can be any color
+	
+	--user defined functions
+	on_step = function(self,dtime)
+		self.present_timer = self.present_timer + dtime
+		local pos = self.object:getpos()
+		if self.present_timer > 3 then
+			minetest.add_item(pos, "default:coal_lump")
+			minetest.add_particlespawner({
+				amount = 80,
+				time = 0.01,
+				minpos = {x=pos.x-1, y=pos.y-0.5, z=pos.z-1},
+				maxpos = {x=pos.x+1, y=pos.y+0.5, z=pos.z+1},
+				minvel = {x=-1, y=1, z=-1},
+				maxvel = {x=1, y=2, z=1},
+				minacc = {x=0, y=-2, z=0},
+				maxacc = {x=0, y=-3, z=0},
+				minexptime = 1,
+				maxexptime = 2,
+				minsize = 1,
+				maxsize = 2,
+				collisiondetection = false,
+				vertical = false,
+				texture = "open_ai_safari_ball_particle.png",
+			})
+			if math.random() > 0.6 then
+				minetest.sound_play("fart", {
+					pos = pos,
+					max_hear_distance = 20,
+					gain = 10.0,
+				})
+			else
+				minetest.sound_play("hohoho", {
+					pos = pos,
+					max_hear_distance = 20,
+					gain = 0.4,
+				})
+			end
+			self.present_timer = 0 --comment this out for santa bleeding coal
+			self.expire_timer = math.random(1,4)+math.random()
+		end
+	end,
+	on_activate = function(self, staticdata, dtime_s)
+		self.present_timer = 0
+		self.expire_timer = math.random(1,4)+math.random()
+	end,
+	on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
+		--print("hit")
+	end,
+	on_die = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
+		--print("poof")
+	end,
+	on_rightclick = function(self, clicker)
+		--print("right clicked")
+	end,
+	--when a mob gets hurt
+	on_hurt = function(self,hp_change)
+		--print(hp_change)
 	end,
 })

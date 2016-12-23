@@ -1,6 +1,6 @@
 --fishing items and entities
 minetest.register_craftitem("open_ai:fishing_pole_lure", {
-	description = "Fishing Pole",
+	description = "Fishing Pole (With Lure)",
 	inventory_image = "open_ai_fishing_pole_lure.png^[transformFX",
 	stack_max = 1,
 	on_use = function(itemstack, user, pointed_thing)
@@ -26,7 +26,7 @@ minetest.register_craftitem("open_ai:fishing_pole_lure", {
 	end,
 })
 minetest.register_craftitem("open_ai:fishing_pole_no_lure", {
-	description = "Fishing Pole (Cast)",
+	description = "Fishing Pole",
 	inventory_image = "open_ai_fishing_pole_no_lure.png^[transformFX",
 	stack_max = 1,
 })
@@ -44,6 +44,9 @@ minetest.register_entity("open_ai:lure", {
 	acceleration = 4,
 	speed = 5,
 	in_water = false,
+	on_land = false,
+	attached = nil,
+	
 	
 	on_activate = function(self, staticdata)
 		self.object:set_armor_groups({immortal=1})
@@ -61,8 +64,10 @@ minetest.register_entity("open_ai:lure", {
 	end,
 	--when a mob is on a leash
 	lure_function = function(self,dtime)
+		self.reel(self)
+	
 		self.check_pole(self)
-		
+		local pos = self.object:getpos()
 		local vel  = self.object:getvelocity()
 		--remove if owner is not in game
 		if not self.owner or not self.owner:is_player() then
@@ -70,22 +75,8 @@ minetest.register_entity("open_ai:lure", {
 			return
 		end
 		
-		if self.oldvel then
-		if  (math.abs(self.oldvel.x) ~= 0 and vel.x == 0) or
-			(math.abs(self.oldvel.y) ~= 0 and vel.y == 0) or
-			(math.abs(self.oldvel.z) ~= 0 and vel.z == 0) then
-			
-			minetest.sound_play("open_ai_line_break", {
-				pos = pos2,
-				max_hear_distance = 10,
-				gain = 10.0,
-			})
-			self.object:remove()
-		end
-		end
-		
-		self.reel(self)
-		
+		--find if on land
+		self.touch_land(self)
 		
 		
 		local pos  = self.object:getpos()
@@ -97,7 +88,7 @@ minetest.register_entity("open_ai:lure", {
 		local vec = {x=pos.x-pos2.x,y=pos.y-pos2.y-c, z=pos.z-pos2.z}
 		
 		--hurt mobs and players
-		self.hurt_mobs(self,pos)
+		self.collect(self,pos)
 		
 		--print(vec.x,vec.z)
 		self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
@@ -110,12 +101,17 @@ minetest.register_entity("open_ai:lure", {
 		local distance = vector.distance(pos,pos2)
 		
 		--collect reeled in lures
-		if distance < 2 and self.in_water == true then
+		if distance < 2 and (self.in_water == true or self.on_land == true) then
 			minetest.sound_play("open_ai_collect_lure", {
 				pos = pos2,
 				max_hear_distance = 10,
 				gain = 10.0,
 			})
+			--stop reel sound
+			if self.reel_sound ~= nil then
+				minetest.sound_stop(self.reel_sound)
+				self.reel_sound = nil
+			end
 			self.owner:set_wielded_item("open_ai:fishing_pole_lure")
 			self.object:remove()
 		end
@@ -126,6 +122,36 @@ minetest.register_entity("open_ai:lure", {
 		--how lures move
 		self.lure_movement(self,distance)
 		
+	end,
+	touch_land = function(self)
+		local vel = self.object:getvelocity()
+		local pos = self.object:getpos()
+		--[[
+		if self.oldvel and self.in_water == true then
+		if  (math.abs(self.oldvel.x) ~= 0 and vel.x == 0) or
+			(math.abs(self.oldvel.z) ~= 0 and vel.z == 0) then
+			minetest.sound_play("open_ai_line_break", {
+				pos = pos,
+				max_hear_distance = 10,
+				gain = 10.0,
+			})
+			--stop reel sound
+			if self.reel_sound ~= nil then
+				minetest.sound_stop(self.reel_sound)
+				self.reel_sound = nil
+			end
+			
+			self.object:remove()
+		end
+		]]--
+		--switch to on land mode
+		if self.on_land == false and self.oldvel and self.in_water == false then
+		if (self.oldvel.y <= 0 and vel.y == 0) then
+			--on land
+			self.velocity = 0
+			self.on_land = true
+		end
+		end	
 	end,
 	--how lures move
 	lure_movement = function(self,distance)
@@ -143,11 +169,23 @@ minetest.register_entity("open_ai:lure", {
 		if self.liquid ~= 0 and self.liquid ~= nil then
 			gravity = self.liquid
 		end
+		--function on land or water
 		if self.in_water == false and self.liquid ~= 0 then
 			self.in_water = true
 		end
+		if self.on_land == true and self.in_water == true then
+			self.on_land = false
+		end
+		
+		--allow players to drag lures over nodes
+		if self.on_land == true or self.in_water == true then
+		if (x~= 0 and vel.x == 0) or (z ~= 0 and vel.z == 0) then
+			gravity = self.velocity
+		end
+		end
+		
 		--only do goal y velocity if floating up
-		if self.in_water == true then
+		if self.in_water == true or self.on_land == true then
 		if gravity == -10 then
 			self.object:setacceleration({x=(x - vel.x)*self.acceleration,y=-10,z=(z - vel.z)*self.acceleration})
 		else
@@ -156,31 +194,41 @@ minetest.register_entity("open_ai:lure", {
 		end
 		self.oldvel = vel
 	end,
-	--hurt mobs and players if in radius
-	hurt_mobs = function(self,pos)
+	--collect mob or player if in radius
+	collect = function(self,pos)
 		for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 1)) do
+			if self.attached == nil then
 			if (object:is_player() and object ~= self.owner) or (object:get_luaentity() and object:get_luaentity().mob == true and object ~= self.object) then
-				object:punch(self.object, 1.0,  {
-					full_punch_interval=1.0,
-					damage_groups = {fleshy=1}
-				}, vec)
+				object:set_attach(self.object, "", {x=0, y=0, z=0}, {x=0, y=0, z=0})
+				self.attached = object
 			
+			end
 			end
 		end
 	
 	end,
 	--checks if player is holding fishing pole
 	check_pole = function(self)
+		local breakline = false
 		if self.owner and self.owner:get_wielded_item():to_string() ~= "" then
 			if self.owner:get_wielded_item():to_table().name ~= "open_ai:fishing_pole_no_lure" then
-				minetest.sound_play("open_ai_line_break", {
-					pos = pos2,
-					max_hear_distance = 10,
-					gain = 10.0,
-				})
-				self.object:remove()
-				
+				breakline = true
 			end
+		elseif self.owner and self.owner:get_wielded_item():to_string() == "" then
+			breakline = true
+		end
+		if breakline == true then
+			minetest.sound_play("open_ai_line_break", {
+				pos = pos2,
+				max_hear_distance = 10,
+				gain = 10.0,
+			})
+			--stop reel sound
+			if self.reel_sound ~= nil then
+				minetest.sound_stop(self.reel_sound)
+				self.reel_sound = nil
+			end
+			self.object:remove()
 		end
 	end,
 
@@ -189,9 +237,23 @@ minetest.register_entity("open_ai:lure", {
 	reel = function(self)
 
 		--reeling in
-		if self.owner:get_player_control().RMB == true then
+		if self.owner and self.owner:get_player_control().RMB == true then
 			self.velocity = self.speed
+			--reel sound attached to player
+			if self.reel_sound == nil then
+				self.reel_sound = minetest.sound_play("open_ai_reel", {
+					max_hear_distance = 10,
+					gain = 10.0,
+					object = self.owner,
+					loop = true,
+				})
+			end
 		else
+			--stop reel sound
+			if self.reel_sound ~= nil then
+				minetest.sound_stop(self.reel_sound)
+				self.reel_sound = nil
+			end
 			self.velocity = 0
 		end
 	end,
