@@ -114,9 +114,12 @@ open_ai.register_mob = function(name,def)
 		--Do simpler definition variables for ease of use
 		mob          = true,
 		name         = name,
-		collisionbox = {-def.width/2,-def.height/2,-def.width/2,def.width/2,def.height/2,def.width/2},
-		height       = def.height,
-		width        = def.width,
+		
+		collisionbox = def.collisionbox,--{-def.width/2,-def.height/2,-def.width/2,def.width/2,def.height/2,def.width/2},
+		
+		height       = math.abs(def.collisionbox[2]), --sample from bottom of collisionbox - absolute for the sake of math
+		width        = def.collisionbox[1], --sample first item of collisionbox
+		
 		physical     = def.physical,
 		collide_with_objects = false, -- for magnetic collision
 		max_velocity = def.max_velocity,
@@ -235,27 +238,27 @@ open_ai.register_mob = function(name,def)
 			
 			
 				--find out if node is underneath
-				local under_node = minetest.get_node({x=pos.x,y=pos.y-(self.height/2)-0.1,z=pos.z}).name
+				local under_node = minetest.get_node({x=pos.x,y=pos.y-self.height-0.1,z=pos.z}).name
 				
 				if minetest.registered_nodes[under_node].walkable == false then
 					--print("JUMP FAILURE")
 					return
 				end
 				
-				
-				--commented out section is to use vel to get yaw dir, hence redeffing it as local yaw verus self.yaw
-				local yaw = self.yaw--(math.atan(vel.z / vel.x) + math.pi / 2)
+				local yaw = self.yaw
 							
 				--don't check if not moving instead change direction
 				if yaw == yaw then --check for nan
-					--turn it into usable position modifier
-					local x = (math.sin(yaw) * -1)*1.5
-					local z = (math.cos(yaw))*1.5
-					local node = minetest.get_node({x=pos.x+x,y=pos.y,z=pos.z+z}).name
-					if minetest.registered_nodes[node].walkable == true then
-						--print("jump")
+					
+					--use velocity calculation to find whether to jump
+					local x = (math.sin(yaw) * -1)
+					local z = (math.cos(yaw))
+					
+					if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
 						self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
-					end			
+					end
+
+								
 				end
 			elseif self.liquid ~= 0 then
 				
@@ -697,15 +700,19 @@ open_ai.register_mob = function(name,def)
 		
 	})
 	
-	open_ai.register_safari_ball(name,def.ball_color)
+	open_ai.register_safari_ball(name,def.ball_color,math.abs(def.collisionbox[2]))
 	
 end
 
 --this is a test mob which can be used to learn how to make mobs using open ai - uses FreeLikeGNU's sheep mesh
 open_ai.register_mob("open_ai:test",{
 	--mob physical variables
-	height = 0.7, --divide by 2 for even height
-	width  = 0.7, --divide by 2 for even width
+	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
+	--             {left, below, right, forwards, above , backwards}
+	collisionbox = {-0.7, -0.7,  -0.7, 0.7     ,  0.7   , 0.7      }, --the collision box of the mesh,
+	
+	--height = 0.7, --divide by 2 for even height }DEPRECATED due to having to center when creating meshes
+	--width  = 0.7, --divide by 2 for even width  }
 	physical = true, --if the mob collides with the world, false is useful for ghosts
 	jump_height = 5, --how high a mob will jump
 	health = 20, --how much health a mob has

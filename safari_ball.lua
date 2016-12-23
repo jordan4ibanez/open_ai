@@ -93,7 +93,7 @@ minetest.register_entity("open_ai:safari_ball_no_mob", {
 })
 
 --function that creates safari ball item and entity
-open_ai.register_safari_ball = function(mob_name, color)
+open_ai.register_safari_ball = function(mob_name, color,height)
 	local texture = "open_ai_safari_ball_top.png^[colorize:#"..color.."^open_ai_safari_ball_bottom.png"
 	--item
 	minetest.register_craftitem("open_ai:safari_ball_"..mob_name:match("^.-:(.*)"), {
@@ -131,6 +131,7 @@ open_ai.register_safari_ball = function(mob_name, color)
 		visual_size = {x = 0.4, y = 0.4},
 		mob = mob_name,
 		color = color,
+		height = height,
 		on_activate = function(self, staticdata, dtime_s)
 			self.object:set_armor_groups({immortal = 1})
 			self.object:setacceleration({x=0,y=-10,z=0})
@@ -170,8 +171,10 @@ open_ai.register_safari_ball = function(mob_name, color)
 					vertical = false,
 					texture = "open_ai_safari_ball_particle.png^[colorize:#"..self.color,
 				})
-				minetest.add_item(pos, "open_ai:safari_ball_no_mob")--spawned
-				minetest.add_entity(pos, self.mob)
+				minetest.add_item(pos, "open_ai:safari_ball_no_mob")
+				
+				pos.y = pos.y + self.height --adjust for height
+				minetest.add_entity(pos, self.mob)--spawned
 				self.object:remove()
 			end
 			end
