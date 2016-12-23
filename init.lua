@@ -483,6 +483,7 @@ open_ai.register_mob = function(name,def)
 					local item = object:get_wielded_item()
 					if item:to_string() ~= "" and item:to_table().name == self.follow_item then
 						self.following = true
+						self.target = object
 					else
 						self.following = false
 					end
@@ -497,6 +498,7 @@ open_ai.register_mob = function(name,def)
 				self.velocity = self.max_velocity
 			
 				local pos1 = self.object:getpos()
+				pos1.y = pos1.y + self.height
 				
 				local pos2 = self.target:getpos() -- this is the goal debug
 				
