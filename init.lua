@@ -871,19 +871,13 @@ open_ai.register_mob("open_ai:santa",{
 				vertical = false,
 				texture = "open_ai_safari_ball_particle.png",
 			})
-			if math.random() > 0.6 then
-				minetest.sound_play("fart", {
-					pos = pos,
-					max_hear_distance = 20,
-					gain = 10.0,
-				})
-			else
-				minetest.sound_play("hohoho", {
-					pos = pos,
-					max_hear_distance = 20,
-					gain = 0.4,
-				})
-			end
+
+			minetest.sound_play("hohoho", {
+				pos = pos,
+				max_hear_distance = 20,
+				gain = 0.4,
+			})
+
 			self.present_timer = 0 --comment this out for santa bleeding coal
 			self.expire_timer = math.random(1,4)+math.random()
 		end
