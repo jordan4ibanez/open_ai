@@ -118,6 +118,10 @@ minetest.register_entity("open_ai:lure", {
 				minetest.sound_stop(self.reel_sound)
 				self.reel_sound = nil
 			end
+			if self.attached then
+				self.attached:set_detach()
+				self.attached:setvelocity({x=vec.x*2,y=math.abs(self.rod_pull)+6,z=vec.z*2})
+			end
 			self.owner:set_wielded_item("open_ai:fishing_pole_lure")
 			self.object:remove()
 		end
