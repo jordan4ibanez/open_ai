@@ -117,8 +117,12 @@ open_ai.register_mob = function(name,def)
 		
 		collisionbox = def.collisionbox,--{-def.width/2,-def.height/2,-def.width/2,def.width/2,def.height/2,def.width/2},
 		
-		height       = math.abs(def.collisionbox[2]), --sample from bottom of collisionbox - absolute for the sake of math
+		height       = def.collisionbox[2], --sample from bottom of collisionbox - absolute for the sake of math
 		width        = math.abs(def.collisionbox[1]), --sample first item of collisionbox
+		
+		--vars for collision detection and floating
+		overhang     = def.collisionbox[5],
+		
 		
 		physical     = def.physical,
 		collide_with_objects = false, -- for magnetic collision
@@ -176,7 +180,7 @@ open_ai.register_mob = function(name,def)
 			self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
 			
 			local pos = self.object:getpos()
-			pos.y = pos.y - (self.height/2) -- the bottom of the entity
+			--pos.y = pos.y - (self.height/2) -- the bottom of the entity
 			--self.old_position = vector.floor(pos)
 			
 			self.yaw = (math.random(0, 360)/360) * (math.pi*2)
@@ -185,6 +189,9 @@ open_ai.register_mob = function(name,def)
 			end
 			
 			self.old_hp = self.object:get_hp() 
+			
+			--create variable that can be added to pos to find center
+			self.center = (self.overhang+self.height)/2
 			
 		end,
 		--user defined function
@@ -222,7 +229,7 @@ open_ai.register_mob = function(name,def)
 					
 					
 				--find out if node is underneath
-				local under_node = minetest.get_node({x=pos.x,y=pos.y-(self.height/2)-0.1,z=pos.z}).name
+				local under_node = minetest.get_node({x=pos.x,y=pos.y+self.height-0.1,z=pos.z}).name
 				local vel = self.object:getvelocity()
 				if minetest.registered_nodes[under_node].walkable == true then
 					--print("jump")
@@ -240,7 +247,7 @@ open_ai.register_mob = function(name,def)
 			
 			
 				--find out if node is underneath
-				local under_node = minetest.get_node({x=pos.x,y=pos.y-self.height-0.1,z=pos.z}).name
+				local under_node = minetest.get_node({x=pos.x,y=pos.y+self.height-0.1,z=pos.z}).name
 				
 				if minetest.registered_nodes[under_node].walkable == false then
 					--print("JUMP FAILURE")
@@ -383,7 +390,7 @@ open_ai.register_mob = function(name,def)
 			local vel = self.object:getvelocity()
 			local x   = 0
 			local z   = 0
-			for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, self.width)) do
+			for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, self.width+0.5)) do
 				--only collide with other mobs and players
 							
 				--add exception if a nil entity exists around it
@@ -456,7 +463,9 @@ open_ai.register_mob = function(name,def)
 			end
 		end,
 		swim = function(self)
-			self.liquid = minetest.registered_nodes[minetest.get_node(self.object:getpos()).name].liquid_viscosity
+			local pos = self.object:getpos()
+			pos.y = pos.y + self.center
+			self.liquid = minetest.registered_nodes[minetest.get_node(pos).name].liquid_viscosity
 			if self.liquid ~= 0 then
 				self.velocity = self.liquid
 			end
