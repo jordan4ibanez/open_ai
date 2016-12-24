@@ -41,6 +41,14 @@
  fish mobs are drawn to lures
  make fish mobs drown and flop around on land
   
+  
+  CURRENT:
+  
+  definable collision radius from center
+  
+  
+  
+  
  
  1.) lightweight ai that walks around, stands, does something like eat grass
  
@@ -117,13 +125,12 @@ open_ai.register_mob = function(name,def)
 		name         = name,
 		
 		collisionbox = def.collisionbox,--{-def.width/2,-def.height/2,-def.width/2,def.width/2,def.height/2,def.width/2},
-		
 		height       = def.collisionbox[2], --sample from bottom of collisionbox - absolute for the sake of math
 		width        = math.abs(def.collisionbox[1]), --sample first item of collisionbox
-		
 		--vars for collision detection and floating
 		overhang     = def.collisionbox[5],
 		
+		collision_radius = def.collision_radius+0.5, -- collision sphere radius
 		
 		physical     = def.physical,
 		collide_with_objects = false, -- for magnetic collision
@@ -388,10 +395,12 @@ open_ai.register_mob = function(name,def)
 		--how the mob collides with other mobs and players
 		collision = function(self)
 			local pos = self.object:getpos()
+			pos.y = pos.y + self.center
+			
 			local vel = self.object:getvelocity()
 			local x   = 0
 			local z   = 0
-			for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, self.width+0.5)) do
+			for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, self.collision_radius)) do
 				--only collide with other mobs and players
 							
 				--add exception if a nil entity exists around it
@@ -400,7 +409,7 @@ open_ai.register_mob = function(name,def)
 					local vec  = {x=pos.x-pos2.x, z=pos.z-pos2.z}
 					--push away harder the closer the collision is, could be used for mob cannons
 					--+0.5 to add player's collisionbox, could be modified to get other mobs widths
-					local force = (self.width+0.5) - vector.distance({x=pos.x,y=0,z=pos.z}, {x=pos2.x,y=0,z=pos2.z})--don't use y to get verticle distance
+					local force = (self.collision_radius) - vector.distance({x=pos.x,y=0,z=pos.z}, {x=pos2.x,y=0,z=pos2.z})--don't use y to get verticle distance
 										
 					--modify existing value to magnetize away from mulitiple entities/players
 					x = x + (vec.x * force) * 20
@@ -745,6 +754,9 @@ open_ai.register_mob("open_ai:sheep",{
 	--             {left, below, right, forwards, above , backwards}
 	collisionbox = {-0.4, -0.0, -0.4, 0.4, 1.0, 0.4}, --the collision box of the mesh,
 	
+	collision_radius = 0.5, --the radius around the entity which will check for collision
+						  --use the biggest number in your collision box for best result
+						  
 	--height = 0.7, --divide by 2 for even height }DEPRECATED due to having to center when creating meshes
 	--width  = 0.7, --divide by 2 for even width  }
 	physical = true, --if the mob collides with the world, false is useful for ghosts
@@ -818,6 +830,9 @@ open_ai.register_mob("open_ai:santa",{
 	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
 	--             {left, below, right, forwards, above , backwards}
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3}, --the collision box of the mesh,
+	
+	collision_radius = 1, --the radius around the entity which will check for collision
+						  --use the biggest number in your collision box for best result
 	
 	--height = 0.7, --divide by 2 for even height }DEPRECATED due to having to center when creating meshes
 	--width  = 0.7, --divide by 2 for even width  }
