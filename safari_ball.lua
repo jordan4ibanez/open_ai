@@ -1,3 +1,5 @@
+--float in water and lava
+
 --empty safari ball
 minetest.register_craftitem("open_ai:safari_ball_no_mob", {
 	--remove modname and capitalize first letter
