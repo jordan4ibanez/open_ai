@@ -170,6 +170,7 @@ open_ai.register_mob = function(name,def)
 		liquid       = 0,
 		hurt_velocity= def.hurt_velocity,
 		liquid_mob   = def.liquid_mob,
+		on_land      = false,
 		
 		
 		--Pathfinding variables
@@ -328,7 +329,6 @@ open_ai.register_mob = function(name,def)
 				self.jump(self)
 				self.path_find(self)
 			end
-
 		end,
 		
 		--how a mob thinks
@@ -411,7 +411,8 @@ open_ai.register_mob = function(name,def)
 				return
 			end
 			
-
+			self.on_land = true --stop fish from moving around
+			
 			self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
 			self.velocity = 0
 			self.behavior_timer = -5
@@ -528,36 +529,91 @@ open_ai.register_mob = function(name,def)
 			end
 			
 			--only do goal y velocity if swimming up
-			if gravity == -10 then
-				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})
-			else
-				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
+
+
+			
+			--land mob
+			if self.liquid_mob == false or self.liquid_mob == nil then
+				if gravity == -10 then
+					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})				
+				else
+					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
+				end
+			elseif self.liquid_mob == true then--liquid mob
+				if gravity == -10 and self.on_land == false then
+					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})				
+				elseif gravity == -10 and self.on_land == true then
+					self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})
+				else
+					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
+				end			
 			end
+				
+
+		end,
+		follow_lure = function(self)
+			
+		
 		end,
 		swim = function(self)
 			local pos = self.object:getpos()
 			pos.y = pos.y + self.center
 			self.liquid = minetest.registered_nodes[minetest.get_node(pos).name].liquid_viscosity
+			--reset the on_land variable
+			if self.liquid ~= 0 and self.on_land == true then
+				self.on_land = false
+			end
 		end,
 		
 		--check if a mob should follow a player when holding an item
 		check_to_follow = function(self)
 			--don't follow if leashed
-			if self.leashed == true or self.liquid_mob == true then
+			if self.leashed == true then
 				return
 			end
-			local pos = self.object:getpos()
-			for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 10)) do
-				if object:is_player() then
-					local item = object:get_wielded_item()
-					if item:to_string() ~= "" and item:to_table().name == self.follow_item then
-						self.following = true
-						self.target = object
-					else
-						self.following = false
+			self.following = false
+			
+			--liquid mobs follow lure
+			if self.liquid_mob == true then
+				local pos = self.object:getpos()
+				for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 10)) do
+					if not object:is_player() and object:get_luaentity() and object:get_luaentity().is_lure == true and object:get_luaentity().in_water == true and object:get_luaentity().attached == nil then 
+						local pos2 = object:getpos()
+						local vec = {x=pos.x-pos2.x,y=pos2.y-pos.y, z=pos.z-pos2.z}
+						--how strong a leash is pulling up a mob
+						self.leash_pull = vec.y
+						--print(vec.x,vec.z)
+						local yaw = math.atan(vec.z/vec.x)+ math.pi / 2
+						
+						if yaw == yaw then
+							
+							if pos2.x > pos.x then
+								self.yaw = yaw+math.pi
+							end
+							
+							self.yaw = yaw
+						end
+						
+						--float up or down to lure
+						self.swim_pitch = vec.y
+					end
+				end
+			else 
+				local pos = self.object:getpos()
+				for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 10)) do
+					if object:is_player() then
+						local item = object:get_wielded_item()
+						if item:to_string() ~= "" and item:to_table().name == self.follow_item then
+							self.following = true
+							self.target = object
+						else
+							self.following = false
+						end
 					end
 				end
 			end
+			
+			
 		end,
 
 		

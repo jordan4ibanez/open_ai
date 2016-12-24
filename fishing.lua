@@ -49,6 +49,7 @@ minetest.register_entity("open_ai:lure", {
 	rod_pull = 0,
 	test_pull = 0,
 	reeling = false,
+	is_lure = true,
 	
 	on_activate = function(self, staticdata)
 		self.object:set_armor_groups({immortal=1})
