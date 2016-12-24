@@ -28,15 +28,15 @@ open_ai.register_mob("open_ai:fish",{
 	
 	--mob aesthetic variables
 	visual = "mesh", --can be changed to anything for flexibility
-	mesh = "open_ai_fish.b3d",
-	textures = {"fish.png"},
+	mesh = "fishtest.b3d",
+	textures = {"fishtest.png"},
         -- sheared textures = {"sheeptest-sheared.png"},
 	animation = { --the animation keyframes and speed
 		speed_normal = 30,--animation speed
 		stand_start = 1,--standing animation start and end
 		stand_end = 80,
-		walk_start = 81,--swimming animation start and end
-		walk_end = 155,
+		walk_start = 121,--swimming animation start and end
+		walk_end = 160,
 		-- jump start = 100,
 		-- jump end = 120,
 	},
