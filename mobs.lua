@@ -30,16 +30,13 @@ open_ai.register_mob("open_ai:fish",{
 	visual = "mesh", --can be changed to anything for flexibility
 	mesh = "fishtest.b3d",
 	textures = {"fishtest.png"},
-        -- sheared textures = {"sheeptest-sheared.png"},
-	animation = { --the animation keyframes and speed
+    	animation = { --the animation keyframes and speed
 		speed_normal = 30,--animation speed
 		stand_start = 1,--standing animation start and end
 		stand_end = 80,
 		walk_start = 121,--swimming animation start and end
 		walk_end = 160,
-		-- jump start = 100,
-		-- jump end = 120,
-	},
+		},
 	automatic_face_movement_dir = 0.0, --what direction the mob faces in
 	makes_footstep_sound = false, --if a mob makes footstep sounds
 	visual_size = {x=1,y=1}, --resizes a mob mesh if needed
@@ -117,7 +114,7 @@ open_ai.register_mob("open_ai:sheep",{
 		-- jump start = 100,
 		-- jump end = 120,
 	},
-	automatic_face_movement_dir = -90.0, --what direction the mob faces in
+	automatic_face_movement_dir = 0, --what direction the mob faces in
 	makes_footstep_sound = true, --if a mob makes footstep sounds
 	visual_size = {x=2,y=2}, --resizes a mob mesh if needed
 	
