@@ -32,7 +32,7 @@ open_ai.register_mob("open_ai:fish",{
 	textures = {"fish.png"},
         -- sheared textures = {"sheeptest-sheared.png"},
 	animation = { --the animation keyframes and speed
-		speed_normal = 10,--animation speed
+		speed_normal = 30,--animation speed
 		stand_start = 1,--standing animation start and end
 		stand_end = 80,
 		walk_start = 81,--swimming animation start and end

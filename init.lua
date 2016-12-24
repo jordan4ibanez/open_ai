@@ -227,6 +227,7 @@ open_ai.register_mob = function(name,def)
 		
 		--decide wether an entity should jump or change direction
 		jump = function(self)
+				
 			--don't execute if liquid mob
 			if self.liquid_mob == true then
 				local vel = self.object:getvelocity()
@@ -239,7 +240,6 @@ open_ai.register_mob = function(name,def)
 				if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
 					self.behavior_timer = self.behavior_timer_goal
 				end
-			
 			else
 				local pos = self.object:getpos()
 				
@@ -395,6 +395,12 @@ open_ai.register_mob = function(name,def)
 		end,
 		--if fish is on land, flop
 		flop_on_land = function(self)
+		
+			--if caught then don't execute
+			if self.object:get_attach() then
+				return
+			end
+			
 			local vel = self.object:getvelocity()
 			local pos = self.object:getpos()
 			--return to save cpu
