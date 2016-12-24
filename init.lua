@@ -395,12 +395,12 @@ open_ai.register_mob = function(name,def)
 		--how the mob collides with other mobs and players
 		collision = function(self)
 			local pos = self.object:getpos()
-			pos.y = pos.y + self.center
+			pos.y = pos.y + self.height -- check bottom of mob
 			
 			local vel = self.object:getvelocity()
 			local x   = 0
 			local z   = 0
-			for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, self.collision_radius)) do
+			for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 1)) do
 				--only collide with other mobs and players
 							
 				--add exception if a nil entity exists around it
@@ -409,7 +409,7 @@ open_ai.register_mob = function(name,def)
 					local vec  = {x=pos.x-pos2.x, z=pos.z-pos2.z}
 					--push away harder the closer the collision is, could be used for mob cannons
 					--+0.5 to add player's collisionbox, could be modified to get other mobs widths
-					local force = (self.collision_radius) - vector.distance({x=pos.x,y=0,z=pos.z}, {x=pos2.x,y=0,z=pos2.z})--don't use y to get verticle distance
+					local force = (1) - vector.distance({x=pos.x,y=0,z=pos.z}, {x=pos2.x,y=0,z=pos2.z})--don't use y to get verticle distance
 										
 					--modify existing value to magnetize away from mulitiple entities/players
 					x = x + (vec.x * force) * 20
