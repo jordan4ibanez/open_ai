@@ -5,11 +5,22 @@ minetest.register_craftitem("open_ai:leash", {
 	inventory_image = "open_ai_leash.png",
 	on_use = function(itemstack, user, pointed_thing)
 	
+		
+	
 		if pointed_thing.type == "object" then
+			
+			
+			
 			local object = pointed_thing.ref
+			
+			--don't allow liquid mobs to be replaced
+			if object:get_luaentity() and object:get_luaentity().mob == true and object:get_luaentity().liquid_mob == true then
+				return
+			end
+			
 			local name   = user:get_player_name()
 			--player sneaks to connect mobs together
-			if user:get_player_control().sneak == true then
+			if user:get_player_control().sneak == true and object:get_luaentity() and object:get_luaentity().mob == true then
 				if open_ai.leash_table[name] == nil then
 					minetest.chat_send_player(name, "Click other mob to link")
 					open_ai.leash_table[name] = object
@@ -21,7 +32,7 @@ minetest.register_craftitem("open_ai:leash", {
 					open_ai.leash_table[name]:get_luaentity().leashed = true
 					open_ai.leash_table[name] = nil
 				end
-			else --just connect to player
+			elseif object:get_luaentity() and object:get_luaentity().mob == true then--just connect to player
 				if open_ai.leash_table[name] ~= nil then
 					minetest.chat_send_player(name, "Link failed!")
 					open_ai.leash_table[name] = nil
