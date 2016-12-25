@@ -184,7 +184,7 @@ open_ai.register_mob("open_ai:horse",{
 	textures = {"open_ai_horse_white.png"},
         -- sheared textures = {"sheeptest-sheared.png"},
 	animation = { --the animation keyframes and speed
-		speed_normal = 30,--animation speed
+		speed_normal = 40,--animation speed
 		stand_start = 140,--standing animation start and end
 		stand_end = 240,
 		walk_start = 0,--walking animation start and end

@@ -738,13 +738,13 @@ open_ai.register_mob = function(name,def)
 				
 				--2 hearts of damage every 2 points over hurt_velocity
 				if diff.x > self.hurt_velocity then
-					punches = punches + (diff.x/2)
+					punches = punches + diff.x
 				end
 				if diff.y > self.hurt_velocity then
-					punches = punches + (diff.y/2)
+					punches = punches + diff.y
 				end
 				if diff.z > self.hurt_velocity then
-					punches = punches + (diff.z/2)
+					punches = punches + diff.z
 				end
 				--hurt entity and set texture modifier
 				if punches > 0 then
