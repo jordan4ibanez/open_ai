@@ -1,3 +1,9 @@
+--[[
+
+make an api to create fishing poles and lures
+
+]]--
+
 --fishing items and entities
 minetest.register_craftitem("open_ai:fishing_pole_lure", {
 	description = "Fishing Pole (With Lure)",
@@ -123,6 +129,7 @@ minetest.register_entity("open_ai:lure", {
 				self.attached:set_detach()
 				self.attached:setvelocity({x=vec.x*-5,y=math.abs(self.rod_pull)+6,z=vec.z*-5})
 				if self.attached:get_luaentity() and self.attached:get_luaentity().mob == true and self.attached:get_luaentity().liquid_mob == true then
+					print("on_land")
 					self.attached:get_luaentity().on_land = true
 				end
 			end
