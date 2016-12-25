@@ -586,7 +586,6 @@ open_ai.register_mob = function(name,def)
 			--make land mobs slow down in water
 			if self.liquid ~= 0 then
 			if self.liquid_mob == nil or self.liquid_mob == false then
-				print(self.liquid)
 				self.velocity = self.liquid
 			end
 			end
