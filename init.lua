@@ -856,10 +856,10 @@ open_ai.register_mob = function(name,def)
 			
 			--initialize riding the horse
 			if self.rideable == true then
-				if self.attached == nil then
+				if self.attached == nil and self.leashed == false then
 					self.attached = clicker
 					clicker:set_attach(self.object, "", {x=0, y=0, z=0}, {x=0, y=0, z=0})
-				else
+				elseif self.attached ~= nil then
 					self.attached:set_detach()
 					self.attached = nil
 				end
