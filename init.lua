@@ -397,7 +397,7 @@ open_ai.register_mob = function(name,def)
 		end,
 		--if fish is on land, flop
 		flop_on_land = function(self)
-		
+			
 			--if caught then don't execute
 			if self.object:get_attach() then
 				return
@@ -554,7 +554,7 @@ open_ai.register_mob = function(name,def)
 			
 			--only do goal y velocity if swimming up
 
-
+			--print(self.velocity)
 			
 			--land mob
 			if self.liquid_mob == false or self.liquid_mob == nil then
@@ -584,8 +584,11 @@ open_ai.register_mob = function(name,def)
 			pos.y = pos.y + self.center
 			self.liquid = minetest.registered_nodes[minetest.get_node(pos).name].liquid_viscosity
 			--make land mobs slow down in water
+			if self.liquid ~= 0 then
 			if self.liquid_mob == nil or self.liquid_mob == false then
+				print(self.liquid)
 				self.velocity = self.liquid
+			end
 			end
 			--reset the on_land variable
 			if self.liquid ~= 0 and self.on_land == true then
