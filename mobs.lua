@@ -181,7 +181,7 @@ open_ai.register_mob("open_ai:horse",{
 	textures = {"open_ai_horse_white.png"},
         -- sheared textures = {"sheeptest-sheared.png"},
 	animation = { --the animation keyframes and speed
-		speed_normal = 40,--animation speed
+		speed_normal = 20,--animation speed
 		stand_start = 140,--standing animation start and end
 		stand_end = 240,
 		walk_start = 0,--walking animation start and end
@@ -198,6 +198,7 @@ open_ai.register_mob("open_ai:horse",{
 	leash       = true,
 	rides_cart  = true,
 	hostile     = false,
+	rideable    = true,
 	
 	--safari ball variables
 	ball_color = "551a8b",--color in hex, can be any color 

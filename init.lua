@@ -160,6 +160,7 @@ open_ai.register_mob = function(name,def)
 		leashed             = false,
 		in_cart             = false,
 		rides_cart          = def.rides_cart,
+		rideable            = def.rideable,
 		
 		
 		--Physical variables
@@ -171,6 +172,7 @@ open_ai.register_mob = function(name,def)
 		hurt_velocity= def.hurt_velocity,
 		liquid_mob   = def.liquid_mob,
 		on_land      = false,
+		attached     = nil,
 		
 		
 		--Pathfinding variables
@@ -498,13 +500,29 @@ open_ai.register_mob = function(name,def)
 				self.in_cart = true
 			end
 		end,
-		
+		--how mobs move around when a player is riding it
+		ridden = function(self)
+			if self.attached ~= nil then
+				if self.attached:is_player() then
+					self.yaw = self.attached:get_look_horizontal()
+					if self.attached:get_player_control().up == true then
+						self.velocity = self.max_velocity
+					else
+						self.velocity = 0
+					end
+				end
+			end
+		end,
 		-- how a mob moves around the world
 		movement = function(self)
+			
 			
 			local collide_values = self.collision(self)
 			local c_x = collide_values[1]
 			local c_z = collide_values[2]
+			
+			self.ridden(self)
+			
 			--print(c_x,c_z)
 			--move mob to goal velocity using acceleration for smoothness
 			local vel = self.object:getvelocity()
@@ -833,6 +851,18 @@ open_ai.register_mob = function(name,def)
 		
 		--what happens when you right click a mob
 		on_rightclick = function(self, clicker)
+			
+			--initialize riding the horse
+			if self.rideable == true then
+				if self.attached == nil then
+					self.attached = clicker
+					clicker:set_attach(self.object, "", {x=0, y=0, z=0}, {x=0, y=0, z=0})
+				else
+					self.attached:set_detach()
+					self.attached = nil
+				end
+				
+			end
 			
 			--undo leash
 			if self.leashed == true then
