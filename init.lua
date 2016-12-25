@@ -565,6 +565,10 @@ open_ai.register_mob = function(name,def)
 			local pos = self.object:getpos()
 			pos.y = pos.y + self.center
 			self.liquid = minetest.registered_nodes[minetest.get_node(pos).name].liquid_viscosity
+			--make land mobs slow down in water
+			if self.liquid_mob == nil or self.liquid_mob == false then
+				self.velocity = self.liquid
+			end
 			--reset the on_land variable
 			if self.liquid ~= 0 and self.on_land == true then
 				self.on_land = false
