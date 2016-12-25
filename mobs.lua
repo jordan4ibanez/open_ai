@@ -153,6 +153,80 @@ open_ai.register_mob("open_ai:sheep",{
 })
 
 
+--horse from nssm https://github.com/NPXcoot/Nssm-models-textures-sounds/blob/master/horse/horse.blend
+--this is a horse mob which can be used to learn how to make mobs using open ai - uses FreeLikeGNU's sheep mesh
+open_ai.register_mob("open_ai:horse",{
+	--mob physical variables
+	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
+	--             {left, below, right, forwards, above , backwards}
+	collisionbox = {-0.4, -0.0, -0.4, 0.4, 1.0, 0.4}, --the collision box of the mesh,
+	
+	collision_radius = 0.5, --the radius around the entity which will check for collision
+						  --use the biggest number in your collision box for best result
+						  
+	--height = 0.7, --divide by 2 for even height }DEPRECATED due to having to center when creating meshes
+	--width  = 0.7, --divide by 2 for even width  }
+	physical = true, --if the mob collides with the world, false is useful for ghosts
+	jump_height = 5, --how high a mob will jump
+	health = 20, --how much health a mob has
+	hurt_velocity = 7, --how fast a mob can hit a node in any direction before taking damage
+	
+	--mob movement variables
+	max_velocity = 3, --set the max velocity that a mob can move
+	acceleration = 3, --how quickly a mob gets up to max velocity
+	behavior_change_min = 3, -- the minimum time a mob will wait to change it's behavior
+	behavior_change_max = 5, -- the max time a mob will wait to change it's behavior
+	float = true, --if a mob tries to swim in liquids
+	
+	--mob aesthetic variables
+	visual = "mesh", --can be changed to anything for flexibility
+	mesh = "open_ai_horse.x",
+	textures = {"open_ai_horse_white.png"},
+        -- sheared textures = {"sheeptest-sheared.png"},
+	animation = { --the animation keyframes and speed
+		speed_normal = 30,--animation speed
+		stand_start = 140,--standing animation start and end
+		stand_end = 240,
+		walk_start = 0,--walking animation start and end
+		walk_end = 80,
+		-- jump start = 100,
+		-- jump end = 120,
+	},
+	automatic_face_movement_dir = 0.0, --what direction the mob faces in
+	makes_footstep_sound = true, --if a mob makes footstep sounds
+	visual_size = {x=2,y=2}, --resizes a mob mesh if needed
+	
+	--mob behavior variables
+	follow_item = "default:dry_grass_1", --if you're holding this a peaceful mob will follow you
+	leash       = true,
+	rides_cart  = true,
+	hostile     = false,
+	
+	--safari ball variables
+	ball_color = "551a8b",--color in hex, can be any color 
+	
+	--user defined functions
+	on_step = function(self,dtime)
+		--print("test")
+	end,
+	on_activate = function(self, staticdata, dtime_s)
+		--print("activating")
+	end,
+	on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
+		--print("hit")
+	end,
+	on_die = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
+		--print("poof")
+	end,
+	on_rightclick = function(self, clicker)
+		--print("right clicked")
+	end,
+	--when a mob gets hurt
+	on_hurt = function(self,hp_change)
+		--print(hp_change)
+	end,
+})
+
 
 
 
