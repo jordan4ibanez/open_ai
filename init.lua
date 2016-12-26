@@ -939,7 +939,7 @@ open_ai.register_mob = function(name,def)
 		
 	})
 	
-	open_ai.register_safari_ball(name,def.ball_color,math.abs(def.collisionbox[2]))
+	open_ai.register_safari_ball("open_ai:"..name,def.ball_color,math.abs(def.collisionbox[2]))
 	
 end
 

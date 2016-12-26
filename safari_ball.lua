@@ -73,7 +73,7 @@ minetest.register_entity("open_ai:safari_ball_no_mob", {
 					vertical = false,
 					texture = "open_ai_safari_ball_particle.png",
 				})
-				minetest.add_item(pos, "open_ai:safari_ball_"..name)
+				minetest.add_item(pos, "open_ai:safari_ball_"..name:match("^.-:(.*)"))
 				object:remove()
 				self.object:remove()
 				open_ai.mob_count = open_ai.mob_count - 1
@@ -100,9 +100,9 @@ minetest.register_entity("open_ai:safari_ball_no_mob", {
 open_ai.register_safari_ball = function(mob_name, color,height)
 	local texture = "open_ai_safari_ball_top.png^[colorize:#"..color.."^open_ai_safari_ball_bottom.png"
 	--item
-	minetest.register_craftitem("open_ai:safari_ball_"..mob_name, {
+	minetest.register_craftitem("open_ai:safari_ball_"..mob_name:match("^.-:(.*)"), {
 		--remove modname and capitalize first letter
-		description = "Safari Ball Containing "..mob_name:gsub("^%l", string.upper),
+		description = "Safari Ball Containing "..mob_name:match("^.-:(.*)"):gsub("^%l", string.upper),
 		inventory_image = texture,
 		on_use = function(itemstack, user, pointed_thing)
 			local v = user:get_look_dir()
@@ -115,7 +115,7 @@ open_ai.register_safari_ball = function(mob_name, color,height)
 				gain = 10.0,
 				object = obj,
 			})
-			local obj = minetest.add_entity(pos, "open_ai:safari_ball_"..mob_name)
+			local obj = minetest.add_entity(pos, "open_ai:safari_ball_"..mob_name:match("^.-:(.*)"))
 			
 			obj:setvelocity({x = (v.x * 7)+vel.x, y = (v.y * 7 + 4)+vel.y, z = (v.z * 7)+vel.z})
 			obj:setacceleration({x = 0, y = -10, z = 0})
@@ -126,7 +126,7 @@ open_ai.register_safari_ball = function(mob_name, color,height)
 	})
 	
 	--entity
-	minetest.register_entity("open_ai:safari_ball_"..mob_name, {
+	minetest.register_entity("open_ai:safari_ball_"..mob_name:match("^.-:(.*)"), {
 		physical = true,
 		collide_with_objects = false,
 		collisionbox = {-0.1, -0.1, -0.1, 0.1, 0.1, 0.1},
