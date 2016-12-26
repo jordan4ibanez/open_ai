@@ -118,13 +118,14 @@ dofile(minetest.get_modpath("open_ai").."/leash.lua")
 dofile(minetest.get_modpath("open_ai").."/safari_ball.lua")
 dofile(minetest.get_modpath("open_ai").."/spawning.lua")
 dofile(minetest.get_modpath("open_ai").."/fishing.lua")
+dofile(minetest.get_modpath("open_ai").."/commands.lua")
 
 
 open_ai.register_mob = function(name,def)
-	minetest.register_entity(name, {
+	minetest.register_entity("open_ai:"..name, {
 		--Do simpler definition variables for ease of use
 		mob          = true,
-		name         = name,
+		name         = "open_ai:"..name,
 		
 		collisionbox = def.collisionbox,--{-def.width/2,-def.height/2,-def.width/2,def.width/2,def.height/2,def.width/2},
 		height       = def.collisionbox[2], --sample from bottom of collisionbox - absolute for the sake of math

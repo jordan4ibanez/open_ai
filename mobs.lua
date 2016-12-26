@@ -1,5 +1,5 @@
 --this is a water test mob which can be used to learn how to make mobs using open ai - uses FreeLikeGNU's sheep mesh
-open_ai.register_mob("open_ai:fish",{
+open_ai.register_mob("fish",{
 	--mob physical variables
 	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
 	--             {left, below, right, forwards, above , backwards}
@@ -77,7 +77,7 @@ open_ai.register_mob("open_ai:fish",{
 
 
 --this is a test mob which can be used to learn how to make mobs using open ai - uses FreeLikeGNU's sheep mesh
-open_ai.register_mob("open_ai:sheep",{
+open_ai.register_mob("sheep",{
 	--mob physical variables
 	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
 	--             {left, below, right, forwards, above , backwards}
@@ -152,7 +152,7 @@ open_ai.register_mob("open_ai:sheep",{
 
 --horse from nssm https://github.com/NPXcoot/Nssm-models-textures-sounds/blob/master/horse/horse.blend
 --this is a horse mob which can be used to learn how to make mobs using open ai - uses FreeLikeGNU's sheep mesh
-open_ai.register_mob("open_ai:horse",{
+open_ai.register_mob("horse",{
 	--mob physical variables
 	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
 	--             {left, below, right, forwards, above , backwards}
@@ -229,7 +229,7 @@ open_ai.register_mob("open_ai:horse",{
 
 
 --a silly santa testmob
-open_ai.register_mob("open_ai:santa",{
+open_ai.register_mob("santa",{
 	--mob physical variables
 	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
 	--             {left, below, right, forwards, above , backwards}
