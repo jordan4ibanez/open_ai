@@ -220,25 +220,49 @@ open_ai.register_mob = function(name,def)
 		end,
 		
 		
+		--used to tell if mob entity has despawned
 		global_mob_counter = function(self)
-		--debug for limiting max mobs
-			if self.activated == true then
+			--print(dump(minetest.get_node_or_nil(pos)))
+			--debug for limiting max mobs
+			
+			--do this to save a lot of resources vs a global table
+			
+			--automatically remove mob if dead
+			if self.object:get_hp() <= 0 then
 				open_ai.mob_count = open_ai.mob_count - 1
 				minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
-				self.activated = false
-			elseif self.activated == nil then
-				--limit the max amount of mobs in the world
-				if open_ai.mob_count+1 > open_ai.max_mobs then
-					self.object:remove()
-					minetest.chat_send_all(open_ai.max_mobs.." mob limit reached!")
-					return
-				else
-					open_ai.mob_count = open_ai.mob_count + 1
-					minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
-				end
-				self.activated = true
-				self.spawn_number = open_ai.mob_count
-			end	
+			else--use assumption logic for mob counter
+				minetest.after(0,function(self)
+					local pos = self.object:getpos()
+					local exists
+					
+					--for despawned mobs
+					if pos == nil then
+						exists = nil 
+					else
+						exists = table.getn(minetest.get_objects_inside_radius(pos, 0.01))
+					end
+					
+					--print("static data global mob count")
+					if exists == nil then
+						open_ai.mob_count = open_ai.mob_count - 1
+						minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
+					elseif exists > 0 then
+						--limit the max amount of mobs in the world
+						if self.activated == nil then
+							if open_ai.mob_count+1 > open_ai.max_mobs then
+								self.object:remove()
+								minetest.chat_send_all(open_ai.max_mobs.." mob limit reached!")
+							else
+								open_ai.mob_count = open_ai.mob_count + 1
+								minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
+							end
+							--trigger to not readd mobs to global mob counter when already existing
+							self.activated = true	
+						end
+					end
+				end,self)
+			end
 		end,
 		--decide wether an entity should jump or change direction
 		jump = function(self)
