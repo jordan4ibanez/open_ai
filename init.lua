@@ -184,8 +184,6 @@ open_ai.register_mob = function(name,def)
 		
 		--what mobs do when created
 		on_activate = function(self, staticdata, dtime_s)
-			--debug for max mobs
-			open_ai.mob_count = open_ai.mob_count + 1
 			--minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
 			--debug for movement
 			self.velocity = math.random(1,self.max_velocity)+math.random()
@@ -217,9 +215,13 @@ open_ai.register_mob = function(name,def)
 		
 		--when the mob entity is deactivated
 		get_staticdata = function(self)
+			--debug for limiting max mobs
 			if self.activated == true then
 				open_ai.mob_count = open_ai.mob_count - 1
-				--minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
+				minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
+			else
+				open_ai.mob_count = open_ai.mob_count + 1
+				minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
 			end
 			self.activated = true
 		end,
