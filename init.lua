@@ -112,7 +112,7 @@
 --global to enable other mods/packs to utilize the ai
 open_ai = {}
 open_ai.mob_count = 0
-open_ai.max_mobs = 20 -- limit the max number of mobs existing in the world
+open_ai.max_mobs = 2000 -- limit the max number of mobs existing in the world
 
 dofile(minetest.get_modpath("open_ai").."/leash.lua")
 dofile(minetest.get_modpath("open_ai").."/safari_ball.lua")
