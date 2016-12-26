@@ -48,7 +48,7 @@ open_ai.register_mob("open_ai:fish",{
 	hostile     = false,
 	
 	--safari ball variables
-	ball_color = "0000ff",--color in hex, can be any color 
+	ball_color = "ee7600",--color in hex, can be any color 
 	
 	--user defined functions
 	on_step = function(self,dtime)
