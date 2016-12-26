@@ -1,4 +1,4 @@
---this is a water test mob which can be used to learn how to make mobs using open ai - uses FreeLikeGNU's sheep mesh
+--this is a water test mob which can be used to learn how to make mobs using open ai - uses FreeLikeGNU's fish mesh
 open_ai.register_mob("open_ai:fish",{
 	--mob physical variables
 	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
@@ -150,8 +150,8 @@ open_ai.register_mob("open_ai:sheep",{
 })
 
 
---horse from nssm https://github.com/NPXcoot/Nssm-models-textures-sounds/blob/master/horse/horse.blend
---this is a horse mob which can be used to learn how to make mobs using open ai - uses FreeLikeGNU's sheep mesh
+
+--this is a horse mob which can be used to learn how to make mobs using open ai - uses FreeLikeGNU's horse mesh
 open_ai.register_mob("open_ai:horse",{
 	--mob physical variables
 	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
@@ -177,19 +177,18 @@ open_ai.register_mob("open_ai:horse",{
 	
 	--mob aesthetic variables
 	visual = "mesh", --can be changed to anything for flexibility
-	mesh = "open_ai_horse.x",
-	textures = {"open_ai_horse_white.png"},
-        -- sheared textures = {"sheeptest-sheared.png"},
-	animation = { --the animation keyframes and speed
-		speed_normal = 20,--animation speed
-		stand_start = 140,--standing animation start and end
-		stand_end = 240,
-		walk_start = 0,--walking animation start and end
-		walk_end = 80,
-		-- jump start = 100,
-		-- jump end = 120,
+	mesh = "equine.b3d",
+	textures = {"equine.png"},
+      	animation = { --the animation keyframes and speed
+		speed_normal = 7,--animation speed
+		stand_start = 1,--standing animation start and end
+		stand_end = 80,
+		walk_start = 101,--walking animation start and end
+		walk_end = 120,
+		-- jump start = 131,
+		-- jump end = 155,
 	},
-	automatic_face_movement_dir = 0.0, --what direction the mob faces in
+	automatic_face_movement_dir = -90.0, --what direction the mob faces in
 	makes_footstep_sound = true, --if a mob makes footstep sounds
 	visual_size = {x=2,y=2}, --resizes a mob mesh if needed
 	
