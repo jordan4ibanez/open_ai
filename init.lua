@@ -112,18 +112,20 @@
 --global to enable other mods/packs to utilize the ai
 open_ai = {}
 open_ai.mob_count = 0
+open_ai.max_mobs = 2000 -- limit the max number of mobs existing in the world
 
 dofile(minetest.get_modpath("open_ai").."/leash.lua")
 dofile(minetest.get_modpath("open_ai").."/safari_ball.lua")
 dofile(minetest.get_modpath("open_ai").."/spawning.lua")
 dofile(minetest.get_modpath("open_ai").."/fishing.lua")
+dofile(minetest.get_modpath("open_ai").."/commands.lua")
 
 
 open_ai.register_mob = function(name,def)
-	minetest.register_entity(name, {
+	minetest.register_entity("open_ai:"..name, {
 		--Do simpler definition variables for ease of use
 		mob          = true,
-		name         = name,
+		name         = "open_ai:"..name,
 		
 		collisionbox = def.collisionbox,--{-def.width/2,-def.height/2,-def.width/2,def.width/2,def.height/2,def.width/2},
 		height       = def.collisionbox[2], --sample from bottom of collisionbox - absolute for the sake of math
@@ -184,8 +186,6 @@ open_ai.register_mob = function(name,def)
 		
 		--what mobs do when created
 		on_activate = function(self, staticdata, dtime_s)
-			--debug for max mobs
-			open_ai.mob_count = open_ai.mob_count + 1
 			--minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
 			--debug for movement
 			self.velocity = math.random(1,self.max_velocity)+math.random()
@@ -217,16 +217,54 @@ open_ai.register_mob = function(name,def)
 		
 		--when the mob entity is deactivated
 		get_staticdata = function(self)
-			if self.activated == true then
-				open_ai.mob_count = open_ai.mob_count - 1
-				--minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
-			end
-			self.activated = true
+			self.global_mob_counter(self)
 		end,
 		
 		
-		
-		
+		--used to tell if mob entity has despawned
+		global_mob_counter = function(self)
+			--print(dump(minetest.get_node_or_nil(pos)))
+			--debug for limiting max mobs
+			
+			--do this to save a lot of resources vs a global table
+			
+			--automatically remove mob if dead
+			if self.object:get_hp() <= 0 then
+				open_ai.mob_count = open_ai.mob_count - 1
+				minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
+			else--use assumption logic for mob counter
+				minetest.after(0,function(self)
+					local pos = self.object:getpos()
+					local exists
+					
+					--for despawned mobs
+					if pos == nil then
+						exists = nil 
+					else
+						exists = table.getn(minetest.get_objects_inside_radius(pos, 0.01))
+					end
+					
+					--print("static data global mob count")
+					if exists == nil then
+						open_ai.mob_count = open_ai.mob_count - 1
+						minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
+					elseif exists > 0 then
+						--limit the max amount of mobs in the world
+						if self.activated == nil then
+							if open_ai.mob_count+1 > open_ai.max_mobs then
+								self.object:remove()
+								minetest.chat_send_all(open_ai.max_mobs.." mob limit reached!")
+							else
+								open_ai.mob_count = open_ai.mob_count + 1
+								minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
+							end
+							--trigger to not readd mobs to global mob counter when already existing
+							self.activated = true	
+						end
+					end
+				end,self)
+			end
+		end,
 		--decide wether an entity should jump or change direction
 		jump = function(self)
 				
@@ -842,6 +880,7 @@ open_ai.register_mob = function(name,def)
 				self.user_defined_on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
 			end
 			if self.object:get_hp() <= 0 then
+				self.global_mob_counter(self) --remove from global mob count
 				if self.user_defined_on_die then
 					self.user_defined_on_die(self, puncher, time_from_last_punch, tool_capabilities, dir)
 				end
@@ -900,7 +939,7 @@ open_ai.register_mob = function(name,def)
 		
 	})
 	
-	open_ai.register_safari_ball(name,def.ball_color,math.abs(def.collisionbox[2]))
+	open_ai.register_safari_ball("open_ai:"..name,def.ball_color,math.abs(def.collisionbox[2]))
 	
 end
 

@@ -1,5 +1,5 @@
 --this is a water test mob which can be used to learn how to make mobs using open ai - uses FreeLikeGNU's fish mesh
-open_ai.register_mob("open_ai:fish",{
+open_ai.register_mob("fish",{
 	--mob physical variables
 	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
 	--             {left, below, right, forwards, above , backwards}
@@ -48,7 +48,7 @@ open_ai.register_mob("open_ai:fish",{
 	hostile     = false,
 	
 	--safari ball variables
-	ball_color = "0000ff",--color in hex, can be any color 
+	ball_color = "ee7600",--color in hex, can be any color 
 	
 	--user defined functions
 	on_step = function(self,dtime)
@@ -77,7 +77,7 @@ open_ai.register_mob("open_ai:fish",{
 
 
 --this is a test mob which can be used to learn how to make mobs using open ai - uses FreeLikeGNU's sheep mesh
-open_ai.register_mob("open_ai:sheep",{
+open_ai.register_mob("sheep",{
 	--mob physical variables
 	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
 	--             {left, below, right, forwards, above , backwards}
@@ -152,7 +152,7 @@ open_ai.register_mob("open_ai:sheep",{
 
 
 --this is a horse mob which can be used to learn how to make mobs using open ai - uses FreeLikeGNU's horse mesh
-open_ai.register_mob("open_ai:horse",{
+open_ai.register_mob("horse",{
 	--mob physical variables
 	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
 	--             {left, below, right, forwards, above , backwards}
@@ -179,14 +179,15 @@ open_ai.register_mob("open_ai:horse",{
 	visual = "mesh", --can be changed to anything for flexibility
 	mesh = "equine.b3d",
 	textures = {"equine.png"},
-      	animation = { --the animation keyframes and speed
-		speed_normal = 7,--animation speed
-		stand_start = 1,--standing animation start and end
-		stand_end = 80,
-		walk_start = 101,--walking animation start and end
-		walk_end = 120,
-		-- jump start = 131,
-		-- jump end = 155,
+        -- sheared textures = {"sheeptest-sheared.png"},
+	animation = { --the animation keyframes and speed
+		speed_normal = 20,--animation speed
+		stand_start = 140,--standing animation start and end
+		stand_end = 240,
+		walk_start = 0,--walking animation start and end
+		walk_end = 80,
+		-- jump start = 100,
+		-- jump end = 120,
 	},
 	automatic_face_movement_dir = -90.0, --what direction the mob faces in
 	makes_footstep_sound = true, --if a mob makes footstep sounds
@@ -228,7 +229,7 @@ open_ai.register_mob("open_ai:horse",{
 
 
 --a silly santa testmob
-open_ai.register_mob("open_ai:santa",{
+open_ai.register_mob("santa",{
 	--mob physical variables
 	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
 	--             {left, below, right, forwards, above , backwards}
