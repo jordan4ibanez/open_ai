@@ -112,6 +112,7 @@
 --global to enable other mods/packs to utilize the ai
 open_ai = {}
 open_ai.mob_count = 0
+open_ai.max_mobs = 20 -- limit the max number of mobs existing in the world
 
 dofile(minetest.get_modpath("open_ai").."/leash.lua")
 dofile(minetest.get_modpath("open_ai").."/safari_ball.lua")
@@ -215,20 +216,30 @@ open_ai.register_mob = function(name,def)
 		
 		--when the mob entity is deactivated
 		get_staticdata = function(self)
-			--debug for limiting max mobs
-			if self.activated == true then
-				open_ai.mob_count = open_ai.mob_count - 1
-				minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
-			else
-				open_ai.mob_count = open_ai.mob_count + 1
-				minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
-			end
-			self.activated = true
+			self.global_mob_counter(self)
 		end,
 		
 		
-		
-		
+		global_mob_counter = function(self)
+		--debug for limiting max mobs
+			if self.activated == true then
+				open_ai.mob_count = open_ai.mob_count - 1
+				minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
+				self.activated = false
+			elseif self.activated == nil then
+				--limit the max amount of mobs in the world
+				if open_ai.mob_count+1 > open_ai.max_mobs then
+					self.object:remove()
+					minetest.chat_send_all(open_ai.max_mobs.." mob limit reached!")
+					return
+				else
+					open_ai.mob_count = open_ai.mob_count + 1
+					minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
+				end
+				self.activated = true
+				self.spawn_number = open_ai.mob_count
+			end	
+		end,
 		--decide wether an entity should jump or change direction
 		jump = function(self)
 				
@@ -844,6 +855,7 @@ open_ai.register_mob = function(name,def)
 				self.user_defined_on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
 			end
 			if self.object:get_hp() <= 0 then
+				self.global_mob_counter(self) --remove from global mob count
 				if self.user_defined_on_die then
 					self.user_defined_on_die(self, puncher, time_from_last_punch, tool_capabilities, dir)
 				end
