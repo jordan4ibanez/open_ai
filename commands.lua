@@ -38,7 +38,7 @@ minetest.register_chatcommand("spawn", {
 			else --add single
 				minetest.add_entity(pos,str)
 			end
-		else
+		else --tell player the mob doesn't exist
 			minetest.chat_send_player(name, str:match("^.-:(.*)"):gsub("^%l", string.upper).." is not a registerd mob!")
 		end
 		
