@@ -153,7 +153,7 @@ open_ai.register_mob = function(name,def)
 		visual_size = {x=def.visual_size.x, y=def.visual_size.y},
 		eye_offset = def.eye_offset,
 		visual_offset = def.visual_offset,
-		sits_on_mob = def.sits_on_mob,
+		player_pose = def.player_pose,
 		
 		
 		--Behavioral variables
@@ -913,8 +913,9 @@ open_ai.register_mob = function(name,def)
 			--run this in here because it is part of animation and textures
 			self.hurt_texture_normalize(self,dtime)
 			--set the riding player's animation to sitting
-			if self.attached and self.attached:is_player() and self.sits_on_mob == true then
-				self.attached:set_animation({x= 81, y=160,}, 30,0)
+			if self.attached and self.attached:is_player() and self.player_pose then
+				print(self.player_pose)
+				self.attached:set_animation(self.player_pose, 30,0)
 			end
 		end,
 		
