@@ -287,7 +287,12 @@ open_ai.register_mob = function(name,def)
 						return
 					end
 					
-					self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
+					local yaw = self.yaw 
+					if yaw == yaw then --avoid inf 
+						local x = (math.sin(yaw) * -1) * self.velocity
+						local z = (math.cos(yaw)) * self.velocity
+						self.object:setvelocity({x=x,y=self.jump_height,z=z})
+					end
 
 				end
 			end
