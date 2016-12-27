@@ -180,6 +180,7 @@ open_ai.register_mob = function(name,def)
 		liquid_mob   = def.liquid_mob,
 		on_land      = false,
 		attached     = nil,
+		attached_name = nil,
 		
 		
 		--Pathfinding variables
@@ -192,6 +193,7 @@ open_ai.register_mob = function(name,def)
 		
 		--what mobs do when created
 		on_activate = function(self, staticdata, dtime_s)
+			print("activating at "..dump(self.object:getpos()))
 			if string.sub(staticdata, 1, string.len("return")) == "return" then
 				local data = minetest.deserialize(staticdata)
 				for key,value in pairs(data) do
@@ -205,6 +207,21 @@ open_ai.register_mob = function(name,def)
 			if self.target_name ~= nil then
 				self.target = minetest.get_player_by_name(self.target_name)
 			end
+			
+			--keep object riding
+			if self.attached_name ~= nil then
+				self.attached = minetest.get_player_by_name(self.attached_name)
+				self.attached:set_attach(self.object, "", {x=0, y=self.visual_offset, z=0}, {x=0, y=self.automatic_face_movement_dir+90, z=0})
+				if self.attached:is_player() == true then
+					self.attached:set_properties({
+						visual_size = {x=1/self.visual_size.x, y=1/self.visual_size.y},
+					})
+					--set players eye offset for mob
+					self.attached:set_eye_offset({x=0,y=self.eye_offset,z=0},{x=0,y=0,z=0})
+				end
+			end
+			
+			
 			if self.user_defined_on_activate then
 				self.user_defined_on_activate(self, staticdata, dtime_s)
 			end
@@ -220,6 +237,7 @@ open_ai.register_mob = function(name,def)
 		
 		--when the mob entity is deactivated
 		get_staticdata = function(self)
+			print("staticdata at "..dump(self.object:getpos()))
 			--self.global_mob_counter(self)
 			local serialize_table = {}
 			for key,value in pairs(self) do
@@ -982,6 +1000,7 @@ open_ai.register_mob = function(name,def)
 			if self.rideable == true then
 				if self.attached == nil and self.leashed == false then
 					self.attached = clicker
+					self.attached_name = clicker:get_player_name()
 					self.attached:set_attach(self.object, "", {x=0, y=self.visual_offset, z=0}, {x=0, y=self.automatic_face_movement_dir+90, z=0})
 					--sit animation
 					if self.attached:is_player() == true then
@@ -1001,6 +1020,7 @@ open_ai.register_mob = function(name,def)
 						self.attached:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
 					end
 					self.attached:set_detach()
+					self.attached_name = nil
 					self.attached = nil
 				end
 				
