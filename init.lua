@@ -149,6 +149,9 @@ open_ai.register_mob = function(name,def)
 		makes_footstep_sound = def.makes_footstep_sound,
 		animation = def.animation,
 		visual_size = {x=def.visual_size.x, y=def.visual_size.y},
+		eye_offset = def.eye_offset,
+		visual_offset = def.visual_offset,
+		sits_on_mob = def.sits_on_mob,
 		
 		
 		--Behavioral variables
@@ -904,6 +907,10 @@ open_ai.register_mob = function(name,def)
 			self.object:set_animation({x=self.animation.walk_start,y=self.animation.walk_end}, speed, 0, true)
 			--run this in here because it is part of animation and textures
 			self.hurt_texture_normalize(self,dtime)
+			--set the riding player's animation to sitting
+			if self.attached and self.attached:is_player() and self.sits_on_mob == true then
+				self.attached:set_animation({x= 81, y=160,}, 30,0)
+			end
 		end,
 		
 
@@ -932,12 +939,14 @@ open_ai.register_mob = function(name,def)
 			if self.rideable == true then
 				if self.attached == nil and self.leashed == false then
 					self.attached = clicker
-					self.attached:set_attach(self.object, "", {x=0, y=8, z=0}, {x=0, y=0, z=0})
+					self.attached:set_attach(self.object, "", {x=0, y=self.visual_offset, z=0}, {x=0, y=self.automatic_face_movement_dir+90, z=0})
 					--sit animation
 					if self.attached:is_player() == true then
 						self.attached:set_properties({
-							visual_size = {x=self.visual_size.x-1, y=self.visual_size.y-1},
+							visual_size = {x=1/self.visual_size.x, y=1/self.visual_size.y},
 						})
+						--set players eye offset for mob
+						self.attached:set_eye_offset({x=0,y=self.eye_offset,z=0},{x=0,y=0,z=0})
 					end
 				elseif self.attached ~= nil then
 					--normal animation
@@ -945,6 +954,8 @@ open_ai.register_mob = function(name,def)
 						self.attached:set_properties({
 							visual_size = {x=1, y=1},
 						})
+						--revert back to normal
+						self.attached:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
 					end
 					self.attached:set_detach()
 					self.attached = nil

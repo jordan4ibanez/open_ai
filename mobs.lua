@@ -151,12 +151,13 @@ open_ai.register_mob("sheep",{
 
 
 
---this is a horse mob which can be used to learn how to make mobs using open ai - uses FreeLikeGNU's horse mesh
+--this is a horse mob which can be used to learn how to make mobs using open ai - https://github.com/NPXcoot/Nssm-models-textures-sounds
+--this is temporarily using this mesh for debug
 open_ai.register_mob("horse",{
 	--mob physical variables
 	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
 	--             {left, below, right, forwards, above , backwards}
-	collisionbox = {-0.4, -0.0, -0.4, 0.4, 1.0, 0.4}, --the collision box of the mesh,
+	collisionbox = {-0.4, -0.1, -0.4, 0.4, 1.0, 0.4}, --the collision box of the mesh,
 	
 	collision_radius = 0.5, --the radius around the entity which will check for collision
 						  --use the biggest number in your collision box for best result
@@ -177,21 +178,25 @@ open_ai.register_mob("horse",{
 	
 	--mob aesthetic variables
 	visual = "mesh", --can be changed to anything for flexibility
-	mesh = "equine.b3d",
-	textures = {"equine.png"},
+	mesh = "open_ai_horse.x",
+	textures = {"open_ai_horse_white.png"},
         -- sheared textures = {"sheeptest-sheared.png"},
 	animation = { --the animation keyframes and speed
-		speed_normal = 7,--animation speed
-		stand_start = 1,--standing animation start and end
-		stand_end = 80,
-		walk_start = 101,--walking animation start and end
-		walk_end = 120,
+		speed_normal = 20,--animation speed
+		stand_start = 140,--standing animation start and end
+		stand_end = 240,
+		walk_start = 0,--walking animation start and end
+		walk_end = 80,
 		-- jump start = 130,
 		-- jump end = 155,
 	},
-	automatic_face_movement_dir = -90.0, --what direction the mob faces in
+	automatic_face_movement_dir = 0.0, --what direction the mob faces in
 	makes_footstep_sound = true, --if a mob makes footstep sounds
-	visual_size = {x=1.5,y=1.5}, --resizes a mob mesh if needed
+	visual_size = {x=3,y=3}, --resizes a mob mesh if needed
+	
+	eye_offset = 3, --how high, or low a players camera is moved when riding mob
+	visual_offset = 8.1, --how high a players mesh looks when riding a mob
+	sits_on_mob = true, --if a player's mesh is changed to sitting on the mob
 	
 	--mob behavior variables
 	follow_item = "default:dry_grass_1", --if you're holding this a peaceful mob will follow you
