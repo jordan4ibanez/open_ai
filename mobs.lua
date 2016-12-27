@@ -178,25 +178,25 @@ open_ai.register_mob("horse",{
 	
 	--mob aesthetic variables
 	visual = "mesh", --can be changed to anything for flexibility
-	mesh = "open_ai_horse.x",
-	textures = {"open_ai_horse_white.png"},
+	mesh = "equine2.b3d",
+	textures = {"equine2.png"},
         -- sheared textures = {"sheeptest-sheared.png"},
 	animation = { --the animation keyframes and speed
-		speed_normal = 20,--animation speed
-		stand_start = 140,--standing animation start and end
-		stand_end = 240,
-		walk_start = 0,--walking animation start and end
-		walk_end = 80,
+		speed_normal = 8,--animation speed
+		stand_start = 1,--standing animation start and end
+		stand_end = 80,
+		walk_start = 101,--walking animation start and end
+		walk_end = 120,
 		-- jump start = 130,
 		-- jump end = 155,
 	},
-	automatic_face_movement_dir = 0.0, --what direction the mob faces in
+	automatic_face_movement_dir = -90.0, --what direction the mob faces in
 	makes_footstep_sound = true, --if a mob makes footstep sounds
-	visual_size = {x=3,y=3}, --resizes a mob mesh if needed
+	visual_size = {x=1,y=1}, --resizes a mob mesh if needed
 	
 	eye_offset = 8, --how high, or low a players camera is moved when riding mob
-	visual_offset = 8.1, --how high a players mesh looks when riding a mob
-	sits_on_mob = true, --if a player's mesh is changed to sitting on the mob
+	visual_offset = 16.5, --how high a players mesh looks when riding a mob
+	sits_on_mob = false, --if a player's mesh is changed to sitting on the mob
 	
 	--mob behavior variables
 	follow_item = "default:dry_grass_1", --if you're holding this a peaceful mob will follow you
