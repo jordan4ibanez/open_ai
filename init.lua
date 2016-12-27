@@ -265,49 +265,12 @@ open_ai.register_mob = function(name,def)
 				end,self)
 			end
 		end,
-		--decide wether an entity should jump or change direction
-		jump = function(self)
-				
-			--don't execute if liquid mob
-			if self.liquid_mob == true then
-				local vel = self.object:getvelocity()
-				
-				--use velocity calculation to find whether to jump
-				local x = (math.sin(self.yaw) * -1)
-				local z = (math.cos(self.yaw))
-				
-				--reset the timer to change direction
-				if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
-					self.behavior_timer = self.behavior_timer_goal
-				end
-			else
-				local pos = self.object:getpos()
-				
-				--only jump when path step is higher up
-				if self.following == true and self.leashed == false then
-					--only try to jump if pathfinding exists
-					if self.path and table.getn(self.path) > 1 then
-						--don't jump if current position is equal to or higher than goal					
-						if vector.round(pos).y >= self.path[2].y then
-							return
-						end
-					--don't jump if pathfinding doesn't exist
-					else
-						return
-					end
-					
-						
-						
-					--find out if node is underneath
-					local under_node = minetest.get_node({x=pos.x,y=pos.y+self.height-0.1,z=pos.z}).name
-					local vel = self.object:getvelocity()
-					if minetest.registered_nodes[under_node].walkable == true then
-						--print("jump")
-						self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
-					end
-				--stupidly jump
-				elseif self.following == false and self.liquid == 0 and self.leashed == false then
-				
+		--allow players to make mob jump when riding mobs
+		ridden_jump = function(self)
+			if self.attached ~= nil then
+			local pos = self.object:getpos()
+			if self.attached:is_player() then
+				if self.attached:get_player_control().jump == true then
 					local vel = self.object:getvelocity()
 					
 					--return to save cpu
@@ -324,37 +287,103 @@ open_ai.register_mob = function(name,def)
 						return
 					end
 					
-					local yaw = self.yaw
-								
-					--don't check if not moving instead change direction
-					if yaw == yaw then --check for nan
-						
-						--use velocity calculation to find whether to jump
-						local x = (math.sin(yaw) * -1)
-						local z = (math.cos(yaw))
-						
-						if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
-							self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
-						end
+					self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
 
-									
-					end
-				elseif self.liquid ~= 0 then
-					
+				end
+			end
+			end
+		end,
+		--decide wether an entity should jump or change direction
+		jump = function(self)
+			if self.attached == nil then--only jump on it's own if player is not riding
+				--don't execute if liquid mob
+				if self.liquid_mob == true then
 					local vel = self.object:getvelocity()
 					
-					--commented out section is to use vel to get yaw dir, hence redeffing it as local yaw verus self.yaw
-					local yaw = self.yaw--(math.atan(vel.z / vel.x) + math.pi / 2)
-								
-					--don't check if not moving instead change direction
-					if yaw == yaw then --check for nan
-						--use velocity calculation to find whether to jump
-						local x = (math.sin(yaw) * -1)
-						local z = (math.cos(yaw))
+					--use velocity calculation to find whether to jump
+					local x = (math.sin(self.yaw) * -1)
+					local z = (math.cos(self.yaw))
+					
+					--reset the timer to change direction
+					if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
+						self.behavior_timer = self.behavior_timer_goal
+					end
+				else
+					local pos = self.object:getpos()
+					
+					--only jump when path step is higher up
+					if self.following == true and self.leashed == false then
+						--only try to jump if pathfinding exists
+						if self.path and table.getn(self.path) > 1 then
+							--don't jump if current position is equal to or higher than goal					
+							if vector.round(pos).y >= self.path[2].y then
+								return
+							end
+						--don't jump if pathfinding doesn't exist
+						else
+							return
+						end
 						
-						if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
+							
+							
+						--find out if node is underneath
+						local under_node = minetest.get_node({x=pos.x,y=pos.y+self.height-0.1,z=pos.z}).name
+						local vel = self.object:getvelocity()
+						if minetest.registered_nodes[under_node].walkable == true then
+							--print("jump")
 							self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
-						end		
+						end
+					--stupidly jump
+					elseif self.following == false and self.liquid == 0 and self.leashed == false then
+					
+						local vel = self.object:getvelocity()
+						
+						--return to save cpu
+						if vel.y ~= 0 then
+							return
+						end
+					
+					
+						--find out if node is underneath
+						local under_node = minetest.get_node({x=pos.x,y=pos.y+self.height-0.1,z=pos.z}).name
+						
+						if minetest.registered_nodes[under_node].walkable == false then
+							--print("JUMP FAILURE")
+							return
+						end
+						
+						local yaw = self.yaw
+									
+						--don't check if not moving instead change direction
+						if yaw == yaw then --check for nan
+							
+							--use velocity calculation to find whether to jump
+							local x = (math.sin(yaw) * -1)
+							local z = (math.cos(yaw))
+							
+							if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
+								self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
+							end
+
+										
+						end
+					elseif self.liquid ~= 0 then
+						
+						local vel = self.object:getvelocity()
+						
+						--commented out section is to use vel to get yaw dir, hence redeffing it as local yaw verus self.yaw
+						local yaw = self.yaw--(math.atan(vel.z / vel.x) + math.pi / 2)
+									
+						--don't check if not moving instead change direction
+						if yaw == yaw then --check for nan
+							--use velocity calculation to find whether to jump
+							local x = (math.sin(yaw) * -1)
+							local z = (math.cos(yaw))
+							
+							if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
+								self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
+							end		
+						end
 					end
 				end
 			end
@@ -554,6 +583,7 @@ open_ai.register_mob = function(name,def)
 		-- how a mob moves around the world
 		movement = function(self)
 			
+			self.ridden_jump(self)--allow players to jump while they ride mobs
 			
 			local collide_values = self.collision(self)
 			local c_x = collide_values[1]
