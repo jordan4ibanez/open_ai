@@ -132,6 +132,8 @@ open_ai.register_mob = function(name,def)
 		width        = math.abs(def.collisionbox[1]), --sample first item of collisionbox
 		--vars for collision detection and floating
 		overhang     = def.collisionbox[5],
+		--create variable that can be added to pos to find center
+		center = (def.collisionbox[5]+def.collisionbox[2])/2,
 		
 		collision_radius = def.collision_radius+0.5, -- collision sphere radius
 		
@@ -205,9 +207,6 @@ open_ai.register_mob = function(name,def)
 			end
 			
 			self.old_hp = self.object:get_hp() 
-			
-			--create variable that can be added to pos to find center
-			self.center = (self.overhang+self.height)/2
 			
 			--create swim direction on activating
 			if self.liquid_mob == true then
@@ -443,11 +442,17 @@ open_ai.register_mob = function(name,def)
 		leashed_function = function(self,dtime)
 			local pos  = self.object:getpos()
 			local pos2 = self.target:getpos()
-			local c = 0
+			
+			--auto configure the center of objects
+			pos.y = pos.y + self.center
+			
 			if self.target:is_player() then
-				c = 1
+				pos2.y = pos2.y + 1
+			else
+				pos2.y = pos2.y + self.target:get_luaentity().center
 			end
-			local vec = {x=pos.x-pos2.x,y=pos.y-pos2.y-c, z=pos.z-pos2.z}
+			
+			local vec = {x=pos.x-pos2.x,y=pos.y-pos2.y, z=pos.z-pos2.z}
 			--how strong a leash is pulling up a mob
 			self.leash_pull = vec.y
 			--print(vec.x,vec.z)

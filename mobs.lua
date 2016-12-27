@@ -194,7 +194,7 @@ open_ai.register_mob("horse",{
 	makes_footstep_sound = true, --if a mob makes footstep sounds
 	visual_size = {x=3,y=3}, --resizes a mob mesh if needed
 	
-	eye_offset = 8.1, --how high, or low a players camera is moved when riding mob
+	eye_offset = 8, --how high, or low a players camera is moved when riding mob
 	visual_offset = 8.1, --how high a players mesh looks when riding a mob
 	sits_on_mob = true, --if a player's mesh is changed to sitting on the mob
 	
