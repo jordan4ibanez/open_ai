@@ -191,7 +191,7 @@ open_ai.register_mob("horse",{
 	},
 	automatic_face_movement_dir = -90.0, --what direction the mob faces in
 	makes_footstep_sound = true, --if a mob makes footstep sounds
-	visual_size = {x=2,y=2}, --resizes a mob mesh if needed
+	visual_size = {x=1.5,y=1.5}, --resizes a mob mesh if needed
 	
 	--mob behavior variables
 	follow_item = "default:dry_grass_1", --if you're holding this a peaceful mob will follow you

@@ -897,8 +897,20 @@ open_ai.register_mob = function(name,def)
 			if self.rideable == true then
 				if self.attached == nil and self.leashed == false then
 					self.attached = clicker
-					clicker:set_attach(self.object, "", {x=0, y=0, z=0}, {x=0, y=0, z=0})
+					self.attached:set_attach(self.object, "", {x=0, y=8, z=0}, {x=0, y=0, z=0})
+					--sit animation
+					if self.attached:is_player() == true then
+						self.attached:set_properties({
+							visual_size = {x=self.visual_size.x-1, y=self.visual_size.y-1},
+						})
+					end
 				elseif self.attached ~= nil then
+					--normal animation
+					if self.attached:is_player() == true then
+						self.attached:set_properties({
+							visual_size = {x=1, y=1},
+						})
+					end
 					self.attached:set_detach()
 					self.attached = nil
 				end
