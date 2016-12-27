@@ -185,42 +185,61 @@ open_ai.register_mob = function(name,def)
 		--Pathfinding variables
 		path = {},
 		target = nil,
+		target_name = nil,
 		following = false,
 		
 		
 		
 		--what mobs do when created
 		on_activate = function(self, staticdata, dtime_s)
-			--minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
-			--debug for movement
-			self.velocity = math.random(1,self.max_velocity)+math.random()
+			if string.sub(staticdata, 1, string.len("return")) == "return" then
+				local data = minetest.deserialize(staticdata)
+				for key,value in pairs(data) do
+					self[key] = value
+				end
+			end
+			--keep hp
+			self.object:set_hp(self.old_hp)
 			
-			self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
-			
-			local pos = self.object:getpos()
-			--pos.y = pos.y - (self.height/2) -- the bottom of the entity
-			--self.old_position = vector.floor(pos)
-			
-			self.yaw = (math.random(0, 360)/360) * (math.pi*2)
+			--keep leashes connected when respawning
+			if self.target_name ~= nil then
+				self.target = minetest.get_player_by_name(self.target_name)
+			end
 			if self.user_defined_on_activate then
 				self.user_defined_on_activate(self, staticdata, dtime_s)
 			end
-			
-			self.old_hp = self.object:get_hp() 
-			
-			--create swim direction on activating
-			if self.liquid_mob == true then
-				self.swim_pitch = math.random(-self.max_velocity,self.max_velocity)+(math.random()*math.random(-1,1))
-			end
-			
 		end,
+
 		--user defined function
 		user_defined_on_activate = def.on_activate,
 		
+		
+		
+		
+		
+		
 		--when the mob entity is deactivated
 		get_staticdata = function(self)
-			self.global_mob_counter(self)
+			--self.global_mob_counter(self)
+			local serialize_table = {}
+			for key,value in pairs(self) do
+				--don't get object item
+				if key ~= "object" then
+					--don't do userdata
+					if type(value) == "userdata" then
+						value = nil
+					end
+					serialize_table[key] = value
+				end
+			end
+			local value_string = minetest.serialize(serialize_table)
+			return(value_string)
 		end,
+		
+		
+		
+		
+		
 		
 		
 		--used to tell if mob entity has despawned
@@ -440,6 +459,25 @@ open_ai.register_mob = function(name,def)
 		
 		--when a mob is on a leash
 		leashed_function = function(self,dtime)
+			--exception for if mob spawns with player that is not the leash owner
+			if not self.target or (self.target and self.target:is_player() and self.target:getpos() == nil) then
+				print("fail player")
+				self.target = nil
+				self.target_name = nil
+				self.leashed = false
+				return
+			end
+			
+			
+			--exception for if mob spawns without other mob in world
+			if not self.target or (self.target and self.target:getpos() == nil) then
+				print("fail mob")
+				self.target = nil
+				self.target_name = nil
+				self.leashed = false	
+				return			
+			end
+		
 			local pos  = self.object:getpos()
 			local pos2 = self.target:getpos()
 			
@@ -871,7 +909,7 @@ open_ai.register_mob = function(name,def)
 		check_for_hurt = function(self,dtime)
 			local hp = self.object:get_hp()
 			
-			if hp < self.old_hp then
+			if self.old_hp and hp < self.old_hp then
 				--run texture function
 				self.hurt_texture(self,(self.old_hp-hp)/4)
 				--allow user to do something when hurt
@@ -914,7 +952,6 @@ open_ai.register_mob = function(name,def)
 			self.hurt_texture_normalize(self,dtime)
 			--set the riding player's animation to sitting
 			if self.attached and self.attached:is_player() and self.player_pose then
-				print(self.player_pose)
 				self.attached:set_animation(self.player_pose, 30,0)
 			end
 		end,
@@ -973,6 +1010,7 @@ open_ai.register_mob = function(name,def)
 			if self.leashed == true then
 				self.leashed = false
 				self.target = nil
+				self.target_name = nil
 				return
 			end
 

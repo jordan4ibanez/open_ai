@@ -13,7 +13,7 @@ minetest.register_craftitem("open_ai:leash", {
 			
 			local object = pointed_thing.ref
 			
-			--don't allow liquid mobs to be replaced
+			--don't allow liquid mobs to be leashed
 			if object:get_luaentity() and object:get_luaentity().mob == true and object:get_luaentity().liquid_mob == true then
 				return
 			end
@@ -39,6 +39,7 @@ minetest.register_craftitem("open_ai:leash", {
 				end
 				object:get_luaentity().target = user
 				object:get_luaentity().leashed = true
+				object:get_luaentity().target_name = user:get_player_name()
 			end
 		end
 	end,
