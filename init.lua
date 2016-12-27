@@ -201,15 +201,17 @@ open_ai.register_mob = function(name,def)
 				end
 			end
 			--keep hp
-			self.object:set_hp(self.old_hp)
+			if self.old_hp then
+				self.object:set_hp(self.old_hp)
+			end
 			
 			--keep leashes connected when respawning
-			if self.target_name ~= nil then
+			if self.target_name then
 				self.target = minetest.get_player_by_name(self.target_name)
 			end
 			
 			--keep object riding
-			if self.attached_name ~= nil then
+			if self.attached_name then
 				self.attached = minetest.get_player_by_name(self.attached_name)
 				self.attached:set_attach(self.object, "", {x=0, y=self.visual_offset, z=0}, {x=0, y=self.automatic_face_movement_dir+90, z=0})
 				if self.attached:is_player() == true then
@@ -1040,7 +1042,7 @@ open_ai.register_mob = function(name,def)
 		end,
 		--user defined
 		user_defined_on_rightclick = def.on_rightclick,
-		
+				
 		--what mobs do on each server step
 		on_step = function(self,dtime)
 			self.check_for_hurt(self,dtime)
