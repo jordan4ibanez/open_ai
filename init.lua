@@ -1074,7 +1074,7 @@ open_ai.register_mob = function(name,def)
 		end,
 		taming = function(self,clicker)
 			--disalow mobs that can't be tamed or mobs that are already tamed
-			if self.tameable == false or self.tamed == true then 
+			if not self.tameable or (self.tameable == false or self.tamed == true) then 
 				return
 			end
 
