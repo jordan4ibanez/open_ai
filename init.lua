@@ -336,29 +336,51 @@ open_ai.register_mob = function(name,def)
 			local pos = self.object:getpos()
 			if self.attached:is_player() then
 				if self.attached:get_player_control().jump == true then
-					local vel = self.object:getvelocity()
+					if self.liquid == 0 then
+						local vel = self.object:getvelocity()
+						
+						--return to save cpu
+						if vel.y ~= 0 then
+							return
+						end
 					
-					--return to save cpu
-					if vel.y ~= 0 then
-						return
-					end
-				
-				
-					--find out if node is underneath
-					local under_node = minetest.get_node({x=pos.x,y=pos.y+self.height-0.1,z=pos.z}).name
 					
-					if minetest.registered_nodes[under_node].walkable == false then
-						--print("JUMP FAILURE")
-						return
+						--find out if node is underneath
+						local under_node = minetest.get_node({x=pos.x,y=pos.y+self.height-0.1,z=pos.z}).name
+						
+						if minetest.registered_nodes[under_node].walkable == false then
+							--print("JUMP FAILURE")
+							return
+						end
+						
+						local yaw = self.yaw 
+						if yaw == yaw then --avoid inf 
+							local x = (math.sin(yaw) * -1) * self.velocity
+							local z = (math.cos(yaw)) * self.velocity
+							self.object:setvelocity({x=x,y=self.jump_height,z=z})
+						end
+					elseif self.liquid ~= 0 then
+						
+						local vel = self.object:getvelocity()
+						
+						--disalow infinite jumping
+						if vel.y > 0 then
+							return
+						end
+						
+						--commented out section is to use vel to get yaw dir, hence redeffing it as local yaw verus self.yaw
+						local yaw = self.yaw--(math.atan(vel.z / vel.x) + math.pi / 2)
+									
+						--don't check if not moving instead change direction
+						if yaw == yaw then --check for nan
+							--use velocity calculation to find whether to jump
+							local x = (math.sin(yaw) * -1)
+							local z = (math.cos(yaw))
+							
+							self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
+							
+						end
 					end
-					
-					local yaw = self.yaw 
-					if yaw == yaw then --avoid inf 
-						local x = (math.sin(yaw) * -1) * self.velocity
-						local z = (math.cos(yaw)) * self.velocity
-						self.object:setvelocity({x=x,y=self.jump_height,z=z})
-					end
-
 				end
 			end
 			end
