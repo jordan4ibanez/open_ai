@@ -1200,6 +1200,16 @@ open_ai.register_mob = function(name,def)
 		--user defined
 		user_defined_on_rightclick = def.on_rightclick,
 
+		--overcompensate for lag
+		lag_check = function(self,dtime)
+			--move mob back to last known position
+			if dtime > 0.2 and self.last_pos then
+				self.object:moveto(self.last_pos)
+			end
+			
+			self.last_pos = self.object:getpos()
+		end,
+	
 		--what mobs do on each server step
 		on_step = function(self,dtime)
 			self.check_for_hurt(self,dtime)
@@ -1209,6 +1219,7 @@ open_ai.register_mob = function(name,def)
 			self.set_animation(self,dtime)
 			self.movement(self,dtime)
 			self.velocity_damage(self,dtime)
+			self.lag_check(self,dtime)
 			if self.user_defined_on_step then
 				self.user_defined_on_step(self,dtime)
 			end
