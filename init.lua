@@ -188,7 +188,9 @@ open_ai.register_mob = function(name,def)
 		--Physical variables
 		old_position = nil,
 		yaw          = 0,
+		jump_timer   = 0,
 		jump_height  = def.jump_height,
+		jump_velocity= 0,
 		float        = def.float,
 		liquid       = 0,
 		hurt_velocity= def.hurt_velocity,
@@ -357,7 +359,7 @@ open_ai.register_mob = function(name,def)
 						if yaw == yaw then --avoid inf 
 							local x = (math.sin(yaw) * -1) * self.velocity
 							local z = (math.cos(yaw)) * self.velocity
-							self.object:setvelocity({x=x,y=self.jump_height,z=z})
+							self.jump_velocity = self.jump_height
 						end
 					elseif self.liquid ~= 0 then
 						
@@ -377,7 +379,7 @@ open_ai.register_mob = function(name,def)
 							local x = (math.sin(yaw) * -1)
 							local z = (math.cos(yaw))
 							
-							self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
+							self.jump_velocity = self.jump_height
 							
 						end
 					end
@@ -386,7 +388,16 @@ open_ai.register_mob = function(name,def)
 			end
 		end,
 		--decide wether an entity should jump or change direction
-		jump = function(self)
+		jump = function(self,dtime)
+			--return jump velocity to 0 after timer
+			if self.jump_velocity ~= 0 then
+				self.jump_timer = self.jump_timer + dtime
+				if self.jump_timer > 0.2 then
+					self.jump_velocity = 0
+					self.jump_timer = 0
+				end
+			end
+			
 			if self.attached == nil then--only jump on it's own if player is not riding
 				--don't execute if liquid mob
 				if self.liquid_mob == true then
@@ -423,7 +434,7 @@ open_ai.register_mob = function(name,def)
 						local vel = self.object:getvelocity()
 						if minetest.registered_nodes[under_node].walkable == true then
 							--print("jump")
-							self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
+							self.jump_velocity = self.jump_height
 						end
 					--stupidly jump
 					elseif self.following == false and self.liquid == 0 and self.leashed == false then
@@ -454,7 +465,7 @@ open_ai.register_mob = function(name,def)
 							local z = (math.cos(yaw))
 							
 							if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
-								self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
+								self.jump_velocity = self.jump_height
 							end
 
 										
@@ -473,7 +484,7 @@ open_ai.register_mob = function(name,def)
 							local z = (math.cos(yaw))
 							
 							if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
-								self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
+								self.jump_velocity = self.jump_height
 							end		
 						end
 					end
@@ -487,7 +498,6 @@ open_ai.register_mob = function(name,def)
 			self.update_timer = self.update_timer + dtime
 			if self.update_timer >= 0.1 then
 				self.update_timer = 0
-				self.jump(self)
 				self.path_find(self)
 			end
 		end,
@@ -605,7 +615,8 @@ open_ai.register_mob = function(name,def)
 			
 			self.on_land = true --stop fish from moving around
 			
-			self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
+			self.jump_velocity = self.jump_height
+			
 			self.velocity = 0
 			self.behavior_timer = -5
 			--play flop sound
@@ -704,8 +715,9 @@ open_ai.register_mob = function(name,def)
 			end
 		end,
 		-- how a mob moves around the world
-		movement = function(self)
+		movement = function(self,dtime)
 			
+			self.jump(self,dtime) --jump on step
 			self.ridden_jump(self)--allow players to jump while they ride mobs
 			
 			local collide_values = self.collision(self)
@@ -727,6 +739,11 @@ open_ai.register_mob = function(name,def)
 				gravity = self.liquid
 			end
 			
+			--acceleration based jumping
+			if self.jump_velocity ~= 0 then
+				gravity = self.jump_velocity
+			end
+			
 			--drag the mob up nodes with leash, or lift them up
 			if self.leashed == true then
 			if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
@@ -741,25 +758,35 @@ open_ai.register_mob = function(name,def)
 				gravity = self.swim_pitch
 			elseif self.liquid_mob == true and self.liquid == 0 then
 				self.flop_on_land(self)
+				--allow fish to flop on land
+				if self.jump_velocity ~= 0 then
+					gravity = self.jump_velocity
+				end
 			end
 			
 			--only do goal y velocity if swimming up
 
 			--print(self.velocity)
 			
+			local jump_multiplier = 5 --multiply the jump velocity to simulate setvelocity
+			
 			--land mob
 			if self.liquid_mob == false or self.liquid_mob == nil then
-				if gravity == -10 then
+				if gravity == -10 then --fall
 					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})				
-				else
+				elseif self.jump_velocity == 0 then --swim
 					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
+				elseif jump_velocity ~= 0 then --jump
+					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=gravity*jump_multiplier,z=(z - vel.z + c_z)*self.acceleration})
 				end
 			elseif self.liquid_mob == true then--liquid mob
-				if gravity == -10 and self.on_land == false then
-					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})				
-				elseif gravity == -10 and self.on_land == true then
+				if gravity == -10 and self.on_land == false then --out of water
+					self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})				
+				elseif gravity == -10 and self.on_land == true then --on land
 					self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})
-				else
+				elseif self.on_land == true and self.jump_velocity ~= 0 then --on land and jumping
+					self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=gravity*jump_multiplier,z=(0 - vel.z + c_z)*self.acceleration})
+				else --swimming
 					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
 				end			
 			end
@@ -1180,7 +1207,7 @@ open_ai.register_mob = function(name,def)
 			self.behavior(self,dtime)
 			self.update(self,dtime)
 			self.set_animation(self,dtime)
-			self.movement(self)
+			self.movement(self,dtime)
 			self.velocity_damage(self,dtime)
 			if self.user_defined_on_step then
 				self.user_defined_on_step(self,dtime)

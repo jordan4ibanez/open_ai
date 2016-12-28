@@ -165,7 +165,7 @@ open_ai.register_mob("horse",{
 	--height = 0.7, --divide by 2 for even height }DEPRECATED due to having to center when creating meshes
 	--width  = 0.7, --divide by 2 for even width  }
 	physical = true, --if the mob collides with the world, false is useful for ghosts
-	jump_height = 5, --how high a mob will jump
+	jump_height = 6, --how high a mob will jump
 	health = 20, --how much health a mob has
 	hurt_velocity = 7, --how fast a mob can hit a node in any direction before taking damage
 	
