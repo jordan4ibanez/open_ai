@@ -359,7 +359,8 @@ open_ai.register_mob = function(name,def)
 						if yaw == yaw then --avoid inf 
 							local x = (math.sin(yaw) * -1) * self.velocity
 							local z = (math.cos(yaw)) * self.velocity
-							self.jump_velocity = self.jump_height
+							--self.jump_velocity = self.jump_height
+							self.object:setvelocity({x=x,y=self.jump_height,z=z})
 						end
 					elseif self.liquid ~= 0 then
 						
@@ -379,7 +380,8 @@ open_ai.register_mob = function(name,def)
 							local x = (math.sin(yaw) * -1)
 							local z = (math.cos(yaw))
 							
-							self.jump_velocity = self.jump_height
+							--self.jump_velocity = self.jump_height
+							self.object:setvelocity({x=x,y=self.jump_height,z=z})
 							
 						end
 					end
@@ -390,6 +392,7 @@ open_ai.register_mob = function(name,def)
 		--decide wether an entity should jump or change direction
 		jump = function(self,dtime)
 			--return jump velocity to 0 after timer
+			--[[
 			if self.jump_velocity ~= 0 then
 				self.jump_timer = self.jump_timer + dtime
 				if self.jump_timer >= 0.25 then
@@ -397,6 +400,7 @@ open_ai.register_mob = function(name,def)
 					self.jump_timer = 0
 				end
 			end
+			]]--
 			
 			if self.attached == nil then--only jump on it's own if player is not riding
 				--don't execute if liquid mob
@@ -434,7 +438,8 @@ open_ai.register_mob = function(name,def)
 						local vel = self.object:getvelocity()
 						if minetest.registered_nodes[under_node].walkable == true then
 							--print("jump")
-							self.jump_velocity = self.jump_height
+							--self.jump_velocity = self.jump_height
+							self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
 						end
 					--stupidly jump
 					elseif self.following == false and self.liquid == 0 and self.leashed == false then
@@ -465,7 +470,8 @@ open_ai.register_mob = function(name,def)
 							local z = (math.cos(yaw))
 							
 							if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
-								self.jump_velocity = self.jump_height
+								--self.jump_velocity = self.jump_height
+								self.object:setvelocity({x=x,y=self.jump_height,z=z})
 							end
 
 										
@@ -484,7 +490,8 @@ open_ai.register_mob = function(name,def)
 							local z = (math.cos(yaw))
 							
 							if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
-								self.jump_velocity = self.jump_height
+								--self.jump_velocity = self.jump_height
+								self.object:setvelocity({x=x,y=self.jump_height,z=z})
 							end		
 						end
 					end
@@ -615,7 +622,8 @@ open_ai.register_mob = function(name,def)
 			
 			self.on_land = true --stop fish from moving around
 			
-			self.jump_velocity = self.jump_height
+			--self.jump_velocity = self.jump_height
+			self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
 			
 			self.velocity = 0
 			self.behavior_timer = -5
@@ -1200,16 +1208,7 @@ open_ai.register_mob = function(name,def)
 		--user defined
 		user_defined_on_rightclick = def.on_rightclick,
 
-		--overcompensate for lag
-		lag_check = function(self,dtime)
-			--move mob back to last known position
-			if dtime > 0.2 and self.last_pos then
-				self.object:moveto(self.last_pos)
-			end
-			
-			self.last_pos = self.object:getpos()
-		end,
-	
+
 		--what mobs do on each server step
 		on_step = function(self,dtime)
 			self.check_for_hurt(self,dtime)
@@ -1219,7 +1218,7 @@ open_ai.register_mob = function(name,def)
 			self.set_animation(self,dtime)
 			self.movement(self,dtime)
 			self.velocity_damage(self,dtime)
-			self.lag_check(self,dtime)
+			
 			if self.user_defined_on_step then
 				self.user_defined_on_step(self,dtime)
 			end
