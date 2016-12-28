@@ -392,7 +392,7 @@ open_ai.register_mob = function(name,def)
 			--return jump velocity to 0 after timer
 			if self.jump_velocity ~= 0 then
 				self.jump_timer = self.jump_timer + dtime
-				if self.jump_timer > 0.25 then
+				if self.jump_timer >= 0.25 then
 					self.jump_velocity = 0
 					self.jump_timer = 0
 				end
@@ -768,7 +768,7 @@ open_ai.register_mob = function(name,def)
 
 			--print(self.velocity)
 			
-			local jump_multiplier = 3 --multiply the jump velocity to simulate setvelocity
+			local jump_multiplier = 4 --multiply the jump velocity to simulate setvelocity
 			
 			--land mob
 			if self.liquid_mob == false or self.liquid_mob == nil then
@@ -777,7 +777,7 @@ open_ai.register_mob = function(name,def)
 				elseif self.jump_velocity == 0 then --swim
 					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
 				elseif jump_velocity ~= 0 then --jump
-					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=gravity*jump_multiplier,z=(z - vel.z + c_z)*self.acceleration})
+					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*jump_multiplier,z=(z - vel.z + c_z)*self.acceleration})
 				end
 			elseif self.liquid_mob == true then--liquid mob
 				if gravity == -10 and self.on_land == false then --out of water
@@ -785,7 +785,7 @@ open_ai.register_mob = function(name,def)
 				elseif gravity == -10 and self.on_land == true then --on land
 					self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})
 				elseif self.on_land == true and self.jump_velocity ~= 0 then --on land and jumping
-					self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=gravity*jump_multiplier,z=(0 - vel.z + c_z)*self.acceleration})
+					self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*jump_multiplier,z=(0 - vel.z + c_z)*self.acceleration})
 				else --swimming
 					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
 				end			
@@ -1199,7 +1199,7 @@ open_ai.register_mob = function(name,def)
 		end,
 		--user defined
 		user_defined_on_rightclick = def.on_rightclick,
-				
+
 		--what mobs do on each server step
 		on_step = function(self,dtime)
 			self.check_for_hurt(self,dtime)
