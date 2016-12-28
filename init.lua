@@ -748,9 +748,9 @@ open_ai.register_mob = function(name,def)
 			end
 			
 			--acceleration based jumping
-			if self.jump_velocity ~= 0 then
-				gravity = self.jump_velocity
-			end
+			--if self.jump_velocity ~= 0 then
+			--	gravity = self.jump_velocity
+			--end
 			
 			--drag the mob up nodes with leash, or lift them up
 			if self.leashed == true then
@@ -767,34 +767,37 @@ open_ai.register_mob = function(name,def)
 			elseif self.liquid_mob == true and self.liquid == 0 then
 				self.flop_on_land(self)
 				--allow fish to flop on land
-				if self.jump_velocity ~= 0 then
-					gravity = self.jump_velocity
-				end
+				--if self.jump_velocity ~= 0 then
+				--	gravity = self.jump_velocity
+				--end
 			end
 			
 			--only do goal y velocity if swimming up
 
 			--print(self.velocity)
 			
-			local jump_multiplier = 4 --multiply the jump velocity to simulate setvelocity
+			--local jump_multiplier = 4 --multiply the jump velocity to simulate setvelocity
 			
 			--land mob
 			if self.liquid_mob == false or self.liquid_mob == nil then
 				if gravity == -10 then --fall
 					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})				
-				elseif self.jump_velocity == 0 then --swim
+				else--if self.jump_velocity == 0 then --swim
 					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
-				elseif jump_velocity ~= 0 then --jump
-					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*jump_multiplier,z=(z - vel.z + c_z)*self.acceleration})
+				--elseif jump_velocity ~= 0 then --jump
+				--	self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*jump_multiplier,z=(z - vel.z + c_z)*self.acceleration})
 				end
 			elseif self.liquid_mob == true then--liquid mob
 				if gravity == -10 and self.on_land == false then --out of water
+					--print("out of water")
 					self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})				
 				elseif gravity == -10 and self.on_land == true then --on land
+					--print("onland")
 					self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})
-				elseif self.on_land == true and self.jump_velocity ~= 0 then --on land and jumping
-					self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*jump_multiplier,z=(0 - vel.z + c_z)*self.acceleration})
+				--elseif self.on_land == true and self.jump_velocity ~= 0 then --on land and jumping
+				--	self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*jump_multiplier,z=(0 - vel.z + c_z)*self.acceleration})
 				else --swimming
+					--print("swim")
 					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
 				end			
 			end
