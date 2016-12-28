@@ -182,7 +182,7 @@ open_ai.register_mob("horse",{
 	textures = {"equine2.png"},
         -- sheared textures = {"sheeptest-sheared.png"},
 	animation = { --the animation keyframes and speed
-		speed_normal = 8,--animation speed
+		speed_normal = 5,--animation speed
 		stand_start = 1,--standing animation start and end
 		stand_end = 80,
 		walk_start = 101,--walking animation start and end
@@ -204,6 +204,12 @@ open_ai.register_mob("horse",{
 	rides_cart  = true,
 	hostile     = false,
 	rideable    = true,
+	tameable    = true,
+	tame_item   = "farming:wheat",
+	tame_click_min = 3, --how many times a player has to click to tame a mob min } randomized in between
+	tame_click_max = 10, --how many times a player has to click max              }
+	mob_chair   = "open_ai:saddle", --what you use to sit on the mob, doubles the speed it can go
+	chair_textures = {"equine2-saddle.png"}, --changes the mob texture to this when wearing a saddle
 	
 	--safari ball variables
 	ball_color = "551a8b",--color in hex, can be any color 

@@ -119,6 +119,7 @@ dofile(minetest.get_modpath("open_ai").."/safari_ball.lua")
 dofile(minetest.get_modpath("open_ai").."/spawning.lua")
 dofile(minetest.get_modpath("open_ai").."/fishing.lua")
 dofile(minetest.get_modpath("open_ai").."/commands.lua")
+dofile(minetest.get_modpath("open_ai").."/items.lua")
 
 
 open_ai.register_mob = function(name,def)
@@ -169,6 +170,20 @@ open_ai.register_mob = function(name,def)
 		rides_cart          = def.rides_cart,
 		rideable            = def.rideable,
 		
+		--taming variables
+		tameable            = def.tameable,
+		tame_item           = def.tame_item,
+		owner               = nil,
+		owner_name          = nil,
+		tamed               = false,
+		tame_click_min      = def.tame_click_min,
+		tame_click_max      = def.tame_click_max,
+		--chair variables - what the player sits on
+		mob_chair           = def.mob_chair,
+		has_chair           = false,
+		chair_textures      = def.chair_textures,
+		
+		
 		
 		--Physical variables
 		old_position = nil,
@@ -193,7 +208,7 @@ open_ai.register_mob = function(name,def)
 		
 		--what mobs do when created
 		on_activate = function(self, staticdata, dtime_s)
-			print("activating at "..dump(self.object:getpos()))
+			--print("activating at "..dump(self.object:getpos()))
 			if string.sub(staticdata, 1, string.len("return")) == "return" then
 				local data = minetest.deserialize(staticdata)
 				for key,value in pairs(data) do
@@ -223,6 +238,15 @@ open_ai.register_mob = function(name,def)
 				end
 			end
 			
+			--set the amount of times a player has to feed the mob to tame it
+			if not self.tame_amount and self.tameable == true then
+				self.tame_amount = math.random(self.tame_click_min,self.tame_click_max)
+			end
+			--re apply the mob chair texture
+			if self.has_chair and self.has_chair == true then
+				self.object:set_properties({textures = self.chair_textures})
+			end
+			
 			
 			if self.user_defined_on_activate then
 				self.user_defined_on_activate(self, staticdata, dtime_s)
@@ -239,7 +263,7 @@ open_ai.register_mob = function(name,def)
 		
 		--when the mob entity is deactivated
 		get_staticdata = function(self)
-			print("staticdata at "..dump(self.object:getpos()))
+			--print("staticdata at "..dump(self.object:getpos()))
 			--self.global_mob_counter(self)
 			local serialize_table = {}
 			for key,value in pairs(self) do
@@ -640,11 +664,17 @@ open_ai.register_mob = function(name,def)
 		end,
 		--how mobs move around when a player is riding it
 		ridden = function(self)
-			if self.attached ~= nil then
+			--only allow owners to ride
+			if self.tamed == true and self.attached ~= nil and self.attached:get_player_name() == self.owner_name then
 				if self.attached:is_player() then
 					self.yaw = self.attached:get_look_horizontal()
 					if self.attached:get_player_control().up == true then
-						self.velocity = self.max_velocity
+						if self.has_chair and self.has_chair == true then
+							self.velocity = self.max_velocity * 1.5 --double the speed if wearing a chair
+						else
+							self.velocity = self.max_velocity
+						end
+						
 					else
 						self.velocity = 0
 					end
@@ -986,6 +1016,16 @@ open_ai.register_mob = function(name,def)
 			end
 			if self.object:get_hp() <= 0 then
 				self.global_mob_counter(self) --remove from global mob count
+				--return player back to normal scale
+				if self.attached then
+				if self.attached:is_player() == true then
+					self.attached:set_properties({
+						visual_size = {x=1, y=1},
+					})
+					--revert back to normal
+					self.attached:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
+				end
+				end
 				if self.user_defined_on_die then
 					self.user_defined_on_die(self, puncher, time_from_last_punch, tool_capabilities, dir)
 				end
@@ -995,11 +1035,15 @@ open_ai.register_mob = function(name,def)
 		user_defined_on_punch = def.on_punch,
 		user_defined_on_die   = def.on_die,
 		
-		--what happens when you right click a mob
-		on_rightclick = function(self, clicker)
-			
+		--what happens when a player tries to ride the mob
+		try_to_ride = function(self,clicker)
+			local item = clicker:get_wielded_item()
+			--don't ride if putting on mob chair
+			if self.has_chair and self.has_chair == false or (item:to_string() ~= "" and item:to_table().name == self.mob_chair) then
+				return
+			end
 			--initialize riding the horse
-			if self.rideable == true then
+			if self.rideable == true and self.tamed == true and clicker:get_player_name() == self.owner_name then
 				if self.attached == nil and self.leashed == false then
 					self.attached = clicker
 					self.attached_name = clicker:get_player_name()
@@ -1027,6 +1071,70 @@ open_ai.register_mob = function(name,def)
 				end
 				
 			end
+		end,
+		taming = function(self,clicker)
+			--disalow mobs that can't be tamed or mobs that are already tamed
+			if self.tameable == false or self.tamed == true then 
+				return
+			end
+
+			local item = clicker:get_wielded_item()
+			
+			if item:to_string() ~= "" and item:to_table().name == self.tame_item then
+				item:take_item(1)
+				clicker:set_wielded_item(item)
+				self.tame_amount = self.tame_amount - 1
+			end
+			if self.tame_amount <= 0 then
+				self.tamed = true
+				self.owner = clicker
+				self.owner_name = clicker:get_player_name()
+				
+				local pos = self.object:getpos()
+				minetest.add_particlespawner({
+					amount = 50,
+					time = 0.001,
+					minpos = pos,
+					maxpos = pos,
+					minvel = {x=-6, y=3, z=-6},
+					maxvel = {x=6, y=8, z=6},
+					minacc = {x=0, y=-10, z=0},
+					maxacc = {x=0, y=-10, z=0},
+					minexptime = 1,
+					maxexptime = 2,
+					minsize = 1,
+					maxsize = 2,
+					collisiondetection = false,
+					vertical = false,
+					texture = "heart.png",
+				})
+			end
+		end,
+		
+		--how a player puts a "chair" on a mob
+		place_chair = function(self,clicker)
+			if self.tameable == false or self.tamed == false or self.rideable == false or self.mob_chair == nil or self.has_chair == true then
+				return
+			end
+			local item = clicker:get_wielded_item()
+			
+			if item:to_string() ~= "" and item:to_table().name == self.mob_chair then
+				item:take_item(1)
+				clicker:set_wielded_item(item)
+				self.has_chair = true
+				self.object:set_properties({textures = self.chair_textures})
+			end			
+		end,
+		
+		--what happens when you right click a mob
+		on_rightclick = function(self, clicker)
+			
+					
+			self.try_to_ride(self,clicker)
+			
+			self.place_chair(self,clicker) -- this after try to ride so player puts on chair before riding
+			
+			self.taming(self,clicker)
 			
 			--undo leash
 			if self.leashed == true then
