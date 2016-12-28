@@ -392,7 +392,7 @@ open_ai.register_mob = function(name,def)
 			--return jump velocity to 0 after timer
 			if self.jump_velocity ~= 0 then
 				self.jump_timer = self.jump_timer + dtime
-				if self.jump_timer > 0.2 then
+				if self.jump_timer > 0.25 then
 					self.jump_velocity = 0
 					self.jump_timer = 0
 				end
@@ -768,7 +768,7 @@ open_ai.register_mob = function(name,def)
 
 			--print(self.velocity)
 			
-			local jump_multiplier = 5 --multiply the jump velocity to simulate setvelocity
+			local jump_multiplier = 3 --multiply the jump velocity to simulate setvelocity
 			
 			--land mob
 			if self.liquid_mob == false or self.liquid_mob == nil then
