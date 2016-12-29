@@ -378,12 +378,7 @@ open_ai.register_mob = function(name,def)
 		end,
 		--decide wether an entity should jump or change direction
 		jump = function(self,dtime)
-			
-			--skip this function for liquid mobs
-			if self.liquid_mob == true then
-				return
-			end
-			
+						
 			if self.attached == nil then--only jump on it's own if player is not riding
 				--don't execute if liquid mob
 				if self.liquid_mob == true then
@@ -602,7 +597,7 @@ open_ai.register_mob = function(name,def)
 			self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
 			
 			self.velocity = 0
-			self.behavior_timer = -5
+			
 			--play flop sound
 			minetest.sound_play("open_ai_flop", {
 				pos = pos,
