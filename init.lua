@@ -781,10 +781,12 @@ open_ai.register_mob = function(name,def)
 				else 
 					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
 				end
-			elseif self.liquid_mob == true then--liquid mob
+			--liquid mob
+			elseif self.liquid_mob == true then
 				--out of water
 				if gravity == -10 and self.liquid == 0 then 
 					self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})
+				--swimming
 				else 
 					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
 				end			
