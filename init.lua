@@ -1000,14 +1000,28 @@ open_ai.register_mob = function(name,def)
 		--how the mob sets it's mesh animation
 		set_animation = function(self,dtime)
 			local vel = self.object:getvelocity()
-			local speed = (math.abs(vel.x)+math.abs(vel.z))*self.animation.speed_normal --check this
-			
-			self.object:set_animation({x=self.animation.walk_start,y=self.animation.walk_end}, speed, 0, true)
-			--run this in here because it is part of animation and textures
-			self.hurt_texture_normalize(self,dtime)
-			--set the riding player's animation to sitting
-			if self.attached and self.attached:is_player() and self.player_pose then
-				self.attached:set_animation(self.player_pose, 30,0)
+			--only use jump animation for jump only mobs
+			if self.jump_only == true then
+				--set animation if jumping
+				--future note, this is the function that should be used when setting the jump animation for normal mobs
+				if vel.y == 0 and (self.old_velocity_y and self.old_velocity_y < 0) then
+					self.object:set_animation({x=self.animation.jump_start,y=self.animation.jump_end}, self.animation.speed_normal, 0, false)
+					minetest.after(self.animation.speed_normal/100, function(self)
+						self.object:set_animation({x=self.animation.stand_start,y=self.animation.stand_end}, self.animation.speed_normal, 0, true)
+					end,self)
+					
+				end
+			--do normal walking animations
+			else
+				local speed = (math.abs(vel.x)+math.abs(vel.z))*self.animation.speed_normal --check this
+				
+				self.object:set_animation({x=self.animation.walk_start,y=self.animation.walk_end}, speed, 0, true)
+				--run this in here because it is part of animation and textures
+				self.hurt_texture_normalize(self,dtime)
+				--set the riding player's animation to sitting
+				if self.attached and self.attached:is_player() and self.player_pose then
+					self.attached:set_animation(self.player_pose, 30,0)
+				end
 			end
 		end,
 		
