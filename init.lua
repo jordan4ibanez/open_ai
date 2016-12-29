@@ -190,7 +190,6 @@ open_ai.register_mob = function(name,def)
 		yaw          = 0,
 		jump_timer   = 0,
 		jump_height  = def.jump_height,
-		jump_velocity= 0,
 		float        = def.float,
 		liquid       = 0,
 		hurt_velocity= def.hurt_velocity,
@@ -358,7 +357,6 @@ open_ai.register_mob = function(name,def)
 						if yaw == yaw then --avoid inf 
 							local x = (math.sin(yaw) * -1) * self.velocity
 							local z = (math.cos(yaw)) * self.velocity
-							--self.jump_velocity = self.jump_height
 							self.object:setvelocity({x=x,y=self.jump_height,z=z})
 						end
 					elseif self.liquid ~= 0 then
@@ -379,7 +377,6 @@ open_ai.register_mob = function(name,def)
 							local x = (math.sin(yaw) * -1)
 							local z = (math.cos(yaw))
 							
-							--self.jump_velocity = self.jump_height
 							self.object:setvelocity({x=x,y=self.jump_height,z=z})
 							
 						end
@@ -390,16 +387,6 @@ open_ai.register_mob = function(name,def)
 		end,
 		--decide wether an entity should jump or change direction
 		jump = function(self,dtime)
-			--return jump velocity to 0 after timer
-			--[[
-			if self.jump_velocity ~= 0 then
-				self.jump_timer = self.jump_timer + dtime
-				if self.jump_timer >= 0.25 then
-					self.jump_velocity = 0
-					self.jump_timer = 0
-				end
-			end
-			]]--
 			
 			if self.attached == nil then--only jump on it's own if player is not riding
 				--don't execute if liquid mob
@@ -437,7 +424,6 @@ open_ai.register_mob = function(name,def)
 						local vel = self.object:getvelocity()
 						if minetest.registered_nodes[under_node].walkable == true then
 							--print("jump")
-							--self.jump_velocity = self.jump_height
 							self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
 						end
 					--stupidly jump
@@ -469,7 +455,6 @@ open_ai.register_mob = function(name,def)
 							local z = (math.cos(yaw))
 							
 							if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
-								--self.jump_velocity = self.jump_height
 								self.object:setvelocity({x=x,y=self.jump_height,z=z})
 							end
 
@@ -489,7 +474,6 @@ open_ai.register_mob = function(name,def)
 							local z = (math.cos(yaw))
 							
 							if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
-								--self.jump_velocity = self.jump_height
 								self.object:setvelocity({x=x,y=self.jump_height,z=z})
 							end		
 						end
@@ -619,7 +603,6 @@ open_ai.register_mob = function(name,def)
 				return
 			end
 			
-			--self.jump_velocity = self.jump_height
 			self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
 			
 			self.velocity = 0
@@ -743,11 +726,6 @@ open_ai.register_mob = function(name,def)
 			if self.float == true and self.liquid ~= 0 and self.liquid ~= nil then
 				gravity = self.liquid
 			end
-			
-			--acceleration based jumping
-			--if self.jump_velocity ~= 0 then
-			--	gravity = self.jump_velocity
-			--end
 			
 			--drag the mob up nodes with leash, or lift them up
 			if self.leashed == true then
