@@ -326,52 +326,27 @@ open_ai.register_mob = function(name,def)
 		ridden_jump = function(self)
 			if self.attached ~= nil then
 			local pos = self.object:getpos()
+			local vel = self.object:getvelocity()
 			if self.attached:is_player() then
 				if self.attached:get_player_control().jump == true then
+					
+					--jump only if standing on node
 					if self.liquid == 0 then
-						local vel = self.object:getvelocity()
-						
 						--return to save cpu
-						if vel.y ~= 0 then
+						if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
+							--print("velocity failure")
 							return
 						end
-					
-					
-						--find out if node is underneath
-						local under_node = minetest.get_node({x=pos.x,y=pos.y+self.height-0.1,z=pos.z}).name
-						
-						if minetest.registered_nodes[under_node].walkable == false then
-							--print("JUMP FAILURE")
-							return
-						end
-						
-						local yaw = self.yaw 
-						if yaw == yaw then --avoid inf 
-							local x = (math.sin(yaw) * -1) * self.velocity
-							local z = (math.cos(yaw)) * self.velocity
-							self.object:setvelocity({x=x,y=self.jump_height,z=z})
-						end
+						--use velocity calculation to find whether to jump
+						local x = (math.sin(self.yaw) * -1) * self.velocity
+						local z = (math.cos(self.yaw)) * self.velocity
+						self.object:setvelocity({x=x,y=self.jump_height,z=z})
+					--always allowed to jump in water
 					elseif self.liquid ~= 0 then
-						
-						local vel = self.object:getvelocity()
-						
-						--disalow infinite jumping
-						if vel.y > 0 then
-							return
-						end
-						
-						--commented out section is to use vel to get yaw dir, hence redeffing it as local yaw verus self.yaw
-						local yaw = self.yaw--(math.atan(vel.z / vel.x) + math.pi / 2)
-									
-						--don't check if not moving instead change direction
-						if yaw == yaw then --check for nan
-							--use velocity calculation to find whether to jump
-							local x = (math.sin(yaw) * -1)
-							local z = (math.cos(yaw))
-							
-							self.object:setvelocity({x=x,y=self.jump_height,z=z})
-							
-						end
+						--use velocity calculation to find whether to jump
+						local x = (math.sin(self.yaw) * -1) * self.velocity
+						local z = (math.cos(self.yaw)) * self.velocity
+						self.object:setvelocity({x=x,y=self.jump_height,z=z})
 					end
 				end
 			end
@@ -381,11 +356,11 @@ open_ai.register_mob = function(name,def)
 		jump = function(self,dtime)
 			--only jump on it's own if player is not riding		
 			if self.attached == nil then
+				local vel = self.object:getvelocity()
+				
 				--don't execute if liquid mob
 				if self.liquid_mob == true then
-					local vel = self.object:getvelocity()
-					
-					--use velocity calculation to find whether to jump
+					--use this calc to find if it should change direction
 					local x = (math.sin(self.yaw) * -1)
 					local z = (math.cos(self.yaw))
 					
@@ -394,6 +369,7 @@ open_ai.register_mob = function(name,def)
 						self.behavior_timer = self.behavior_timer_goal
 					end
 				else
+					--put this here because it's only used by pathfinding jumping
 					local pos = self.object:getpos()
 					
 					--only jump when path step is higher up
@@ -409,65 +385,35 @@ open_ai.register_mob = function(name,def)
 							return
 						end
 						
-							
-							
-						--find out if node is underneath
-						local under_node = minetest.get_node({x=pos.x,y=pos.y+self.height-0.1,z=pos.z}).name
-						local vel = self.object:getvelocity()
-						if minetest.registered_nodes[under_node].walkable == true then
-							--print("jump")
-							self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
+						--return to save cpu
+						if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
+							--print("velocity failure")
+							return
 						end
+																
+						--use velocity calculation to find whether to jump
+						local x = (math.sin(yaw) * -1) * self.velocity
+						local z = (math.cos(yaw)) * self.velocity
+						self.object:setvelocity({x=x,y=self.jump_height,z=z})
 					--stupidly jump
 					elseif self.following == false and self.liquid == 0 and self.leashed == false then
-					
-						local vel = self.object:getvelocity()
-						
 						--return to save cpu
-						if vel.y ~= 0 then
+						if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
+							--print("velocity failure")
 							return
 						end
-					
-					
-						--find out if node is underneath
-						local under_node = minetest.get_node({x=pos.x,y=pos.y+self.height-0.1,z=pos.z}).name
-						
-						if minetest.registered_nodes[under_node].walkable == false then
-							--print("JUMP FAILURE")
-							return
+						--use velocity calculation to find whether to jump
+						local x = (math.sin(self.yaw) * -1) * self.velocity
+						local z = (math.cos(self.yaw)) * self.velocity
+						if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
+							self.object:setvelocity({x=x,y=self.jump_height,z=z})
 						end
-						
-						local yaw = self.yaw
-									
-						--don't check if not moving instead change direction
-						if yaw == yaw then --check for nan
-							
-							--use velocity calculation to find whether to jump
-							local x = (math.sin(yaw) * -1)
-							local z = (math.cos(yaw))
-							
-							if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
-								self.object:setvelocity({x=x,y=self.jump_height,z=z})
-							end
-
-										
-						end
-					elseif self.liquid ~= 0 then
-						
-						local vel = self.object:getvelocity()
-						
-						--commented out section is to use vel to get yaw dir, hence redeffing it as local yaw verus self.yaw
-						local yaw = self.yaw--(math.atan(vel.z / vel.x) + math.pi / 2)
-									
-						--don't check if not moving instead change direction
-						if yaw == yaw then --check for nan
-							--use velocity calculation to find whether to jump
-							local x = (math.sin(yaw) * -1)
-							local z = (math.cos(yaw))
-							
-							if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
-								self.object:setvelocity({x=x,y=self.jump_height,z=z})
-							end		
+					elseif self.liquid ~= 0 then					
+						--use velocity calculation to find whether to jump
+						local x = (math.sin(self.yaw) * -1) * self.velocity
+						local z = (math.cos(self.yaw)) * self.velocity
+						if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
+							self.object:setvelocity({x=x,y=self.jump_height,z=z})
 						end
 					end
 				end
@@ -485,24 +431,19 @@ open_ai.register_mob = function(name,def)
 				self.jump_timer = 0
 				
 				--return to save cpu
-				if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) then
+				if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
 					--print("velocity failure")
 					return
 				end
 				
-				local yaw = self.yaw
-							
-				--don't check if not moving instead change direction
-				if yaw == yaw then --check for nan
+
+				--use velocity calculation to find whether to jump
+				local x = (math.sin(self.yaw) * -1) * self.velocity
+				local z = (math.cos(self.yaw)) * self.velocity
+
+				self.object:setvelocity({x=x,y=self.jump_height,z=z})
 				
-					--use velocity calculation to find whether to jump
-					local x = (math.sin(yaw) * -1) * self.velocity
-					local z = (math.cos(yaw)) * self.velocity
-
-					self.object:setvelocity({x=x,y=self.jump_height,z=z})
-
-				end
-				self.old_velocity_y = vel.y
+				
 			end
 		end,
 		
@@ -747,6 +688,8 @@ open_ai.register_mob = function(name,def)
 			--print(c_x,c_z)
 			--move mob to goal velocity using acceleration for smoothness
 			local vel = self.object:getvelocity()
+			
+			
 			local x   = math.sin(self.yaw) * -self.velocity
 			local z   = math.cos(self.yaw) * self.velocity
 			
@@ -807,8 +750,9 @@ open_ai.register_mob = function(name,def)
 					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
 				end			
 			end
-				
-
+			
+			--this is used for jumping
+			self.old_velocity_y = vel.y
 		end,
 		
 		--slow down mobs in water and allow water mobs to swim around
