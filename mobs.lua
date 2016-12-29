@@ -99,6 +99,7 @@ open_ai.register_mob("sheep",{
 	behavior_change_min = 3, -- the minimum time a mob will wait to change it's behavior
 	behavior_change_max = 5, -- the max time a mob will wait to change it's behavior
 	float = true, --if a mob tries to swim in liquids
+	jump_only = true, --if a mob only jumps to move around
 	
 	--mob aesthetic variables
 	visual = "mesh", --can be changed to anything for flexibility

@@ -195,7 +195,8 @@ open_ai.register_mob = function(name,def)
 		hurt_velocity= def.hurt_velocity,
 		liquid_mob   = def.liquid_mob,
 		attached     = nil,
-		attached_name = nil,
+		attached_name= nil,
+		jump_only    = def.jump_only, 
 		
 		
 		--Pathfinding variables
@@ -378,6 +379,10 @@ open_ai.register_mob = function(name,def)
 		end,
 		--decide wether an entity should jump or change direction
 		jump = function(self,dtime)
+			--don't execute for jump only mobs
+			if self.jump_only == true then
+				return
+			end
 			--only jump on it's own if player is not riding		
 			if self.attached == nil then
 				--don't execute if liquid mob
@@ -471,7 +476,38 @@ open_ai.register_mob = function(name,def)
 					end
 				end
 			end
+		end,
+		--jump only mob movements
+		jumping_movement = function(self,dtime)
+			self.jump_timer = self.jump_timer + dtime
+			--print(self.jump_timer)
+			--only check to jump every half second
+			if self.jump_timer >= 0.5 then
+				
+				local pos = self.object:getpos()
+				local vel = self.object:getvelocity()
+				self.jump_timer = 0
+				
+				--return to save cpu
+				if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) then
+					--print("velocity failure")
+					return
+				end
+				
+				local yaw = self.yaw
+							
+				--don't check if not moving instead change direction
+				if yaw == yaw then --check for nan
+				
+					--use velocity calculation to find whether to jump
+					local x = (math.sin(yaw) * -1) * self.velocity
+					local z = (math.cos(yaw)) * self.velocity
 
+					self.object:setvelocity({x=x,y=self.jump_height,z=z})
+
+				end
+				self.old_velocity_y = vel.y
+			end
 		end,
 		
 		--this runs everything that happens when a mob update timer resets
@@ -696,7 +732,14 @@ open_ai.register_mob = function(name,def)
 		-- how a mob moves around the world
 		movement = function(self,dtime)
 			
-			self.jump(self,dtime) --jump on step
+			--if jump_only mob then only jump
+			if self.jump_only == true then
+				self.jumping_movement(self,dtime)
+			--else normal jumping
+			else
+				self.jump(self,dtime)
+			end
+			
 			self.ridden_jump(self)--allow players to jump while they ride mobs
 			
 			local collide_values = self.collision(self)
@@ -736,12 +779,27 @@ open_ai.register_mob = function(name,def)
 						
 			--land mob
 			if self.liquid_mob == false or self.liquid_mob == nil then
-				--fall
-				if gravity == -10 then 
-					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})				
-				--swim
-				else 
-					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
+				--jump only mobs
+				if self.jump_only == true then
+					--fall and stop because jump_only mobs only jump around to move
+					if gravity == -10 and vel.y == 0 then 
+						self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})				
+					--move around normally if jumping
+					elseif gravity == -10 and vel.y ~= 0 then
+						self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})
+					--allow jump only mobs to swim
+					else 
+						self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
+					end				
+				--normal walking mobs
+				else
+					--fall
+					if gravity == -10 then 
+						self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})				
+					--swim
+					else 
+						self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
+					end
 				end
 			--liquid mob
 			elseif self.liquid_mob == true then
