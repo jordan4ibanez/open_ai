@@ -480,9 +480,9 @@ open_ai.register_mob = function(name,def)
 			local vel = self.object:getvelocity()
 	
 			--debug to find node the mob exists in
-			local testpos = self.object:getpos()
-			testpos.y = testpos.y-- - (self.height/2) -- the bottom of the entity
-			local vec_pos = vector.floor(testpos) -- the node that the mob exists in
+			--local testpos = self.object:getpos()
+			--testpos.y = testpos.y-- - (self.height/2) -- the bottom of the entity
+			--local vec_pos = vector.floor(testpos) -- the node that the mob exists in
 		
 			--debug test to change behavior
 			if self.following == false and self.behavior_timer >= self.behavior_timer_goal and self.leashed == false then
@@ -748,39 +748,51 @@ open_ai.register_mob = function(name,def)
 				self.jumped = false
 			end
 				
-			--land mob
-			if self.liquid_mob == false or self.liquid_mob == nil then
-				--jump only mobs
-				if self.jump_only == true then
-					--fall and stop because jump_only mobs only jump around to move
-					if gravity == -10 and vel.y == 0 then 
-						self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})				
-					--move around normally if jumping
-					elseif gravity == -10 and vel.y ~= 0 then
-						self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})
-					--allow jump only mobs to swim
-					else 
-						self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
-					end				
-				--normal walking mobs
-				else
-					--fall
-					if gravity == -10 then 
-						self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})				
-					--swim
-					else 
-						self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
+			--stop constant motion if stopped
+			if (math.abs(vel.x) < 0.1 and math.abs(vel.z) < 0.1) and (vel.x ~= 0 and vel.z ~= 0) and self.velocity == 0 then
+				self.object:setvelocity({x=0,y=vel.y,z=0})
+			--only apply gravity if stopped
+			elseif self.velocity == 0 and (math.abs(vel.x) < 0.1 and math.abs(vel.z) < 0.1) then
+				self.object:setacceleration({x=0,y=-10,z=0})		
+			--stop motion if trying to stop
+			elseif self.velocity == 0 and (math.abs(vel.x) > 0.1 or math.abs(vel.z) > 0.1) then
+				self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})				
+			--do normal things
+			elseif self.velocity ~= 0 then
+				--land mob
+				if self.liquid_mob == false or self.liquid_mob == nil then
+					--jump only mobs
+					if self.jump_only == true then
+						--fall and stop because jump_only mobs only jump around to move
+						if gravity == -10 and vel.y == 0 then 
+							self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})				
+						--move around normally if jumping
+						elseif gravity == -10 and vel.y ~= 0 then
+							self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})
+						--allow jump only mobs to swim
+						else 
+							self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
+						end				
+					--normal walking mobs
+					else
+						--fall
+						if gravity == -10 then 
+							self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})				
+						--swim
+						else 
+							self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
+						end
 					end
+				--liquid mob
+				elseif self.liquid_mob == true then
+					--out of water
+					if gravity == -10 and self.liquid == 0 then 
+						self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})
+					--swimming
+					else 
+						self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
+					end			
 				end
-			--liquid mob
-			elseif self.liquid_mob == true then
-				--out of water
-				if gravity == -10 and self.liquid == 0 then 
-					self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})
-				--swimming
-				else 
-					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
-				end			
 			end
 			
 			--this is used for jumping
