@@ -379,10 +379,6 @@ open_ai.register_mob = function(name,def)
 		end,
 		--decide wether an entity should jump or change direction
 		jump = function(self,dtime)
-			--don't execute for jump only mobs
-			if self.jump_only == true then
-				return
-			end
 			--only jump on it's own if player is not riding		
 			if self.attached == nil then
 				--don't execute if liquid mob
