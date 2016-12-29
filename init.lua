@@ -357,75 +357,78 @@ open_ai.register_mob = function(name,def)
 		end,
 		--decide wether an entity should jump or change direction
 		jump = function(self,dtime)
-			
-			--only jump on it's own if player is not riding		
-			if self.attached == nil then
-				local vel = self.object:getvelocity()
-				
-				--don't execute if liquid mob
-				if self.liquid_mob == true then
-					--use this calc to find if it should change direction
-					local x = (math.sin(self.yaw) * -1)
-					local z = (math.cos(self.yaw))
+			self.jump_timer = self.jump_timer + dtime
+			if self.jump_timer >= 0.25 then
+				self.jump_timer = 0
+				--only jump on it's own if player is not riding		
+				if self.attached == nil then
+					local vel = self.object:getvelocity()
 					
-					--reset the timer to change direction
-					if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
-						self.behavior_timer = self.behavior_timer_goal
-					end
-				else
-					--put this here because it's only used by pathfinding jumping
-					local pos = self.object:getpos()
-					
-					--only jump when path step is higher up
-					if self.following == true and self.leashed == false then
-						--only try to jump if pathfinding exists
-						if self.path and table.getn(self.path) > 1 then
-							--don't jump if current position is equal to or higher than goal					
-							if vector.round(pos).y >= self.path[2].y then
+					--don't execute if liquid mob
+					if self.liquid_mob == true then
+						--use this calc to find if it should change direction
+						local x = (math.sin(self.yaw) * -1)
+						local z = (math.cos(self.yaw))
+						
+						--reset the timer to change direction
+						if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
+							self.behavior_timer = self.behavior_timer_goal
+						end
+					else
+						--put this here because it's only used by pathfinding jumping
+						local pos = self.object:getpos()
+						
+						--only jump when path step is higher up
+						if self.following == true and self.leashed == false then
+							--only try to jump if pathfinding exists
+							if self.path and table.getn(self.path) > 1 then
+								--don't jump if current position is equal to or higher than goal					
+								if vector.round(pos).y >= self.path[2].y then
+									return
+								end
+							--don't jump if pathfinding doesn't exist
+							else
 								return
 							end
-						--don't jump if pathfinding doesn't exist
-						else
-							return
-						end
-						
-						--return to save cpu
-						if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
-							--print("velocity failure")
-							return
-						end
-						
-						--return if nan
-						if self.yaw ~= self.yaw then
-							return
-						end
-														
-						--use velocity calculation to find whether to jump
-						local x = (math.sin(self.yaw) * -1) * self.velocity
-						local z = (math.cos(self.yaw)) * self.velocity
-						self.object:setvelocity({x=x,y=self.jump_height,z=z})
-						self.jumped = true
-					--stupidly jump
-					elseif self.following == false and self.liquid == 0 and self.leashed == false then
-						--return to save cpu
-						if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
-							--print("velocity failure")
-							return
-						end
-						--use velocity calculation to find whether to jump
-						local x = (math.sin(self.yaw) * -1) * self.velocity
-						local z = (math.cos(self.yaw)) * self.velocity
-						if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
+							
+							--return to save cpu
+							if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
+								--print("velocity failure")
+								return
+							end
+							
+							--return if nan
+							if self.yaw ~= self.yaw then
+								return
+							end
+															
+							--use velocity calculation to find whether to jump
+							local x = (math.sin(self.yaw) * -1) * self.velocity
+							local z = (math.cos(self.yaw)) * self.velocity
 							self.object:setvelocity({x=x,y=self.jump_height,z=z})
 							self.jumped = true
-						end
-					elseif self.liquid ~= 0 then					
-						--use velocity calculation to find whether to jump
-						local x = (math.sin(self.yaw) * -1) * self.velocity
-						local z = (math.cos(self.yaw)) * self.velocity
-						if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
-							self.object:setvelocity({x=x,y=self.jump_height,z=z})
-							self.jumped = true
+						--stupidly jump
+						elseif self.following == false and self.liquid == 0 and self.leashed == false then
+							--return to save cpu
+							if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
+								--print("velocity failure")
+								return
+							end
+							--use velocity calculation to find whether to jump
+							local x = (math.sin(self.yaw) * -1) * self.velocity
+							local z = (math.cos(self.yaw)) * self.velocity
+							if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
+								self.object:setvelocity({x=x,y=self.jump_height,z=z})
+								self.jumped = true
+							end
+						elseif self.liquid ~= 0 then					
+							--use velocity calculation to find whether to jump
+							local x = (math.sin(self.yaw) * -1) * self.velocity
+							local z = (math.cos(self.yaw)) * self.velocity
+							if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
+								self.object:setvelocity({x=x,y=self.jump_height,z=z})
+								self.jumped = true
+							end
 						end
 					end
 				end

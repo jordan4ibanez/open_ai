@@ -409,7 +409,7 @@ open_ai.register_mob("slime",{
 	hostile     = false,
 	
 	--safari ball variables
-	ball_color = "0000ff",--color in hex, can be any color 
+	ball_color = "32CD32",--color in hex, can be any color 
 	
 	
 	
