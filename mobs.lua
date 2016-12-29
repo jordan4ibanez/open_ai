@@ -72,7 +72,7 @@ open_ai.register_mob("fish",{
 	end,
 	--when a mob jumps
 	on_jump = function(self,dtime)
-		print("user defined jump fish!")
+		--print("user defined jump fish!")
 	end,
 })
 
@@ -153,7 +153,7 @@ open_ai.register_mob("sheep",{
 	end,
 	--when a mob jumps
 	on_jump = function(self,dtime)
-		print("user defined jump sheep!")
+		--print("user defined jump sheep!")
 	end,
 })
 
@@ -244,7 +244,7 @@ open_ai.register_mob("horse",{
 	end,
 	--when a mob jumps
 	on_jump = function(self,dtime)
-		print("user defined jump horse!")
+		--print("user defined jump horse!")
 	end,
 })
 
@@ -355,7 +355,7 @@ open_ai.register_mob("santa",{
 	end,
 	--when a mob jumps
 	on_jump = function(self,dtime)
-		print("user defined jump santa!")
+		--print("user defined jump santa!")
 	end,
 })
 
@@ -435,6 +435,23 @@ open_ai.register_mob("slime",{
 	end,
 	--when a mob jumps
 	on_jump = function(self,dtime)
-		print("user defined jump slime!")
+		local pos = self.object:getpos()
+		minetest.add_particlespawner({
+			amount = 10,
+			time = 0.01,
+			minpos = {x=pos.x-0.5, y=pos.y-self.height, z=pos.z-0.5},
+			maxpos = {x=pos.x+0.5, y=pos.y-self.height, z=pos.z+0.5},
+			minvel = {x=0, y=1, z=0},
+			maxvel = {x=0, y=2, z=0},
+			minacc = {x=0, y=-10, z=0},
+			maxacc = {x=0, y=-10, z=0},
+			minexptime = 1,
+			maxexptime = 2,
+			minsize = 1,
+			maxsize = 2,
+			collisiondetection = true,
+			vertical = false,
+			texture = "open_ai_slime_particle.png",
+		})
 	end,
 })
