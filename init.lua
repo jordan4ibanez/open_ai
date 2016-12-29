@@ -693,11 +693,15 @@ open_ai.register_mob = function(name,def)
 			local x   = math.sin(self.yaw) * -self.velocity
 			local z   = math.cos(self.yaw) * self.velocity
 			
-			--debug to float mobs for now
+
 			local gravity = -10
 			self.swim(self)	--this gets the viscosity of the liquid it's in
+			--mobs that float float
 			if self.float == true and self.liquid ~= 0 and self.liquid ~= nil then
 				gravity = self.liquid
+			--make mobs that can't swim sink to the bottom
+			elseif (self.float == nil or self.float == false) and self.liquid ~= 0 and self.liquid ~= nil then
+				gravity = -self.liquid
 			end
 			
 			--drag the mob up nodes with leash, or lift them up
