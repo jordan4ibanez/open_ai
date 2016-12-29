@@ -195,7 +195,6 @@ open_ai.register_mob = function(name,def)
 		liquid       = 0,
 		hurt_velocity= def.hurt_velocity,
 		liquid_mob   = def.liquid_mob,
-		on_land      = false,
 		attached     = nil,
 		attached_name = nil,
 		
@@ -620,8 +619,6 @@ open_ai.register_mob = function(name,def)
 				return
 			end
 			
-			self.on_land = true --stop fish from moving around
-			
 			--self.jump_velocity = self.jump_height
 			self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
 			
@@ -766,10 +763,6 @@ open_ai.register_mob = function(name,def)
 				gravity = self.swim_pitch
 			elseif self.liquid_mob == true and self.liquid == 0 then
 				self.flop_on_land(self)
-				--allow fish to flop on land
-				--if self.jump_velocity ~= 0 then
-				--	gravity = self.jump_velocity
-				--end
 			end
 						
 			--land mob
@@ -794,10 +787,12 @@ open_ai.register_mob = function(name,def)
 				
 
 		end,
+		
 		follow_lure = function(self)
 			
 		
 		end,
+		--slow down mobs in water and allow water mobs to swim around
 		swim = function(self)
 			local pos = self.object:getpos()
 			pos.y = pos.y + self.center
@@ -808,10 +803,7 @@ open_ai.register_mob = function(name,def)
 				self.velocity = self.liquid
 			end
 			end
-			--reset the on_land variable
-			if self.liquid ~= 0 and self.on_land == true then
-				self.on_land = false
-			end
+			
 		end,
 		
 		--check if a mob should follow a player when holding an item
