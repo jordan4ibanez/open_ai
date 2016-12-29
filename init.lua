@@ -378,8 +378,8 @@ open_ai.register_mob = function(name,def)
 		end,
 		--decide wether an entity should jump or change direction
 		jump = function(self,dtime)
-						
-			if self.attached == nil then--only jump on it's own if player is not riding
+			--only jump on it's own if player is not riding		
+			if self.attached == nil then
 				--don't execute if liquid mob
 				if self.liquid_mob == true then
 					local vel = self.object:getvelocity()
@@ -757,10 +757,6 @@ open_ai.register_mob = function(name,def)
 
 		end,
 		
-		follow_lure = function(self)
-			
-		
-		end,
 		--slow down mobs in water and allow water mobs to swim around
 		swim = function(self)
 			local pos = self.object:getpos()
