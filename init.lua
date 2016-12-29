@@ -279,18 +279,9 @@ open_ai.register_mob = function(name,def)
 			local value_string = minetest.serialize(serialize_table)
 			return(value_string)
 		end,
-		
-		
-		
-		
-		
-		
-		
+
 		--used to tell if mob entity has despawned
 		global_mob_counter = function(self)
-			--print(dump(minetest.get_node_or_nil(pos)))
-			--debug for limiting max mobs
-			
 			--do this to save a lot of resources vs a global table
 			
 			--automatically remove mob if dead
@@ -387,6 +378,11 @@ open_ai.register_mob = function(name,def)
 		end,
 		--decide wether an entity should jump or change direction
 		jump = function(self,dtime)
+			
+			--skip this function for liquid mobs
+			if self.liquid_mob == true then
+				return
+			end
 			
 			if self.attached == nil then--only jump on it's own if player is not riding
 				--don't execute if liquid mob
@@ -527,7 +523,7 @@ open_ai.register_mob = function(name,def)
 		leashed_function = function(self,dtime)
 			--exception for if mob spawns with player that is not the leash owner
 			if not self.target or (self.target and self.target:is_player() and self.target:getpos() == nil) then
-				print("fail player")
+				--print("fail player")
 				self.target = nil
 				self.target_name = nil
 				self.leashed = false
@@ -537,7 +533,7 @@ open_ai.register_mob = function(name,def)
 			
 			--exception for if mob spawns without other mob in world
 			if not self.target or (self.target and self.target:getpos() == nil) then
-				print("fail mob")
+				--print("fail mob")
 				self.target = nil
 				self.target_name = nil
 				self.leashed = false	
