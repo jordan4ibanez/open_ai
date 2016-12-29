@@ -196,7 +196,8 @@ open_ai.register_mob = function(name,def)
 		liquid_mob   = def.liquid_mob,
 		attached     = nil,
 		attached_name= nil,
-		jump_only    = def.jump_only, 
+		jump_only    = def.jump_only,
+		jumped       = false, 
 		
 		
 		--Pathfinding variables
@@ -323,7 +324,7 @@ open_ai.register_mob = function(name,def)
 			end
 		end,
 		--allow players to make mob jump when riding mobs
-		ridden_jump = function(self)
+		ridden_jump = function(self,dtime)
 			if self.attached ~= nil then
 			local pos = self.object:getpos()
 			local vel = self.object:getvelocity()
@@ -341,12 +342,14 @@ open_ai.register_mob = function(name,def)
 						local x = (math.sin(self.yaw) * -1) * self.velocity
 						local z = (math.cos(self.yaw)) * self.velocity
 						self.object:setvelocity({x=x,y=self.jump_height,z=z})
+						self.jumped = true
 					--always allowed to jump in water
 					elseif self.liquid ~= 0 then
 						--use velocity calculation to find whether to jump
 						local x = (math.sin(self.yaw) * -1) * self.velocity
 						local z = (math.cos(self.yaw)) * self.velocity
 						self.object:setvelocity({x=x,y=self.jump_height,z=z})
+						self.jumped = true
 					end
 				end
 			end
@@ -354,6 +357,7 @@ open_ai.register_mob = function(name,def)
 		end,
 		--decide wether an entity should jump or change direction
 		jump = function(self,dtime)
+			
 			--only jump on it's own if player is not riding		
 			if self.attached == nil then
 				local vel = self.object:getvelocity()
@@ -390,11 +394,17 @@ open_ai.register_mob = function(name,def)
 							--print("velocity failure")
 							return
 						end
-																
+						
+						--return if nan
+						if self.yaw ~= self.yaw then
+							return
+						end
+														
 						--use velocity calculation to find whether to jump
-						local x = (math.sin(yaw) * -1) * self.velocity
-						local z = (math.cos(yaw)) * self.velocity
+						local x = (math.sin(self.yaw) * -1) * self.velocity
+						local z = (math.cos(self.yaw)) * self.velocity
 						self.object:setvelocity({x=x,y=self.jump_height,z=z})
+						self.jumped = true
 					--stupidly jump
 					elseif self.following == false and self.liquid == 0 and self.leashed == false then
 						--return to save cpu
@@ -407,6 +417,7 @@ open_ai.register_mob = function(name,def)
 						local z = (math.cos(self.yaw)) * self.velocity
 						if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
 							self.object:setvelocity({x=x,y=self.jump_height,z=z})
+							self.jumped = true
 						end
 					elseif self.liquid ~= 0 then					
 						--use velocity calculation to find whether to jump
@@ -414,11 +425,14 @@ open_ai.register_mob = function(name,def)
 						local z = (math.cos(self.yaw)) * self.velocity
 						if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
 							self.object:setvelocity({x=x,y=self.jump_height,z=z})
+							self.jumped = true
 						end
 					end
 				end
 			end
+			
 		end,
+		user_defined_on_jump = def.on_jump,
 		--jump only mob movements
 		jumping_movement = function(self,dtime)
 			self.jump_timer = self.jump_timer + dtime
@@ -442,7 +456,7 @@ open_ai.register_mob = function(name,def)
 				local z = (math.cos(self.yaw)) * self.velocity
 
 				self.object:setvelocity({x=x,y=self.jump_height,z=z})
-				
+				self.jumped = true
 				
 			end
 		end,
@@ -568,6 +582,7 @@ open_ai.register_mob = function(name,def)
 			end
 			
 			self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
+			self.jumped = true
 			
 			self.velocity = 0
 			
@@ -677,7 +692,7 @@ open_ai.register_mob = function(name,def)
 				self.jump(self,dtime)
 			end
 			
-			self.ridden_jump(self)--allow players to jump while they ride mobs
+			self.ridden_jump(self,dtime)--allow players to jump while they ride mobs
 			
 			local collide_values = self.collision(self)
 			local c_x = collide_values[1]
@@ -719,7 +734,14 @@ open_ai.register_mob = function(name,def)
 			elseif self.liquid_mob == true and self.liquid == 0 then
 				self.flop_on_land(self)
 			end
-						
+			
+			
+			--execute player defined function
+			if self.jumped == true and self.user_defined_on_jump then
+				self.user_defined_on_jump(self,dtime)
+				self.jumped = false
+			end
+				
 			--land mob
 			if self.liquid_mob == false or self.liquid_mob == nil then
 				--jump only mobs

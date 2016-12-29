@@ -70,6 +70,10 @@ open_ai.register_mob("fish",{
 	on_hurt = function(self,hp_change)
 		--print(hp_change)
 	end,
+	--when a mob jumps
+	on_jump = function(self,dtime)
+		print("user defined jump fish!")
+	end,
 })
 
 
@@ -146,6 +150,10 @@ open_ai.register_mob("sheep",{
 	--when a mob gets hurt
 	on_hurt = function(self,hp_change)
 		--print(hp_change)
+	end,
+	--when a mob jumps
+	on_jump = function(self,dtime)
+		print("user defined jump sheep!")
 	end,
 })
 
@@ -233,6 +241,10 @@ open_ai.register_mob("horse",{
 	--when a mob gets hurt
 	on_hurt = function(self,hp_change)
 		--print(hp_change)
+	end,
+	--when a mob jumps
+	on_jump = function(self,dtime)
+		print("user defined jump horse!")
 	end,
 })
 
@@ -341,11 +353,15 @@ open_ai.register_mob("santa",{
 	on_hurt = function(self,hp_change)
 		--print(hp_change)
 	end,
+	--when a mob jumps
+	on_jump = function(self,dtime)
+		print("user defined jump santa!")
+	end,
 })
 
 
 
---this is a test mob which can be used to learn how to make mobs using open ai - uses FreeLikeGNU's sheep mesh
+--my old slime mob brought into this api
 open_ai.register_mob("slime",{
 	--mob physical variables
 	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
@@ -387,13 +403,15 @@ open_ai.register_mob("slime",{
 	visual_size = {x=1,y=1}, --resizes a mob mesh if needed
 	
 	--mob behavior variables
-	follow_item = "default:dry_grass_1", --if you're holding this a peaceful mob will follow you
+	follow_item = "default:slime_ball", --if you're holding this a peaceful mob will follow you
 	leash       = true,
 	rides_cart  = true,
 	hostile     = false,
 	
 	--safari ball variables
 	ball_color = "0000ff",--color in hex, can be any color 
+	
+	
 	
 	--user defined functions
 	on_step = function(self,dtime)
@@ -414,5 +432,9 @@ open_ai.register_mob("slime",{
 	--when a mob gets hurt
 	on_hurt = function(self,hp_change)
 		--print(hp_change)
+	end,
+	--when a mob jumps
+	on_jump = function(self,dtime)
+		print("user defined jump slime!")
 	end,
 })
