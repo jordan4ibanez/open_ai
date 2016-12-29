@@ -486,15 +486,18 @@ open_ai.register_mob = function(name,def)
 		
 			--debug test to change behavior
 			if self.following == false and self.behavior_timer >= self.behavior_timer_goal and self.leashed == false then
-				--print("Changed direction")
-				--self.goal = {x=math.random(-self.max_velocity,self.max_velocity),y=math.random(-self.max_velocity,self.max_velocity),z=math.random(-self.max_velocity,self.max_velocity)}
-				self.yaw = (math.random(0, 360)/360) * (math.pi*2) --double pi to allow complete rotation
-				self.velocity = math.random(1,self.max_velocity)+math.random()
-				self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
-				self.behavior_timer = 0
-				--make fish swim up and down randomly
-				if self.liquid_mob == true then
-					self.swim_pitch = math.random(-self.max_velocity,self.max_velocity)+(math.random()*math.random(-1,1))
+				--normal direction changing, or if jump_only, only change direction on ground
+				if self.jump_only ~= true or (self.jump_only == true and vel.y == 0) then
+					--print("Changed direction")
+					--self.goal = {x=math.random(-self.max_velocity,self.max_velocity),y=math.random(-self.max_velocity,self.max_velocity),z=math.random(-self.max_velocity,self.max_velocity)}
+					self.yaw = (math.random(0, 360)/360) * (math.pi*2) --double pi to allow complete rotation
+					self.velocity = math.random(1,self.max_velocity)+math.random()
+					self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
+					self.behavior_timer = 0
+					--make fish swim up and down randomly
+					if self.liquid_mob == true then
+						self.swim_pitch = math.random(-self.max_velocity,self.max_velocity)+(math.random()*math.random(-1,1))
+					end
 				end
 				--print("randomly moving around")
 			elseif self.following == true then
