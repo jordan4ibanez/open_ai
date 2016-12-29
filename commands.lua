@@ -1,6 +1,6 @@
 minetest.register_chatcommand("spawn", {
 	params = "<mob>",
-	description = "Send text to chat",
+	description = "Spawn x amount of a mob, used as /spawn sheep 10 or /spawn fish for one",
 	privs = {server = true},
 	func = function( name, mob)
 		--local vars
