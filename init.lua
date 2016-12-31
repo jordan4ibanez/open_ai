@@ -1263,8 +1263,6 @@ open_ai.register_mob = function(name,def)
 				self.size_change = nil
 				return
 			end
-			
-			print("failing")
 
 			
 			--change based on variable
@@ -1289,8 +1287,6 @@ open_ai.register_mob = function(name,def)
 				self.visual_size = {x=self.visual_size.x * size_multiplier, y = self.visual_size.y * size_multiplier}
 			end
 			
-			print("changing")
-			
 			--self.collisionbox[2] = self.collisionbox[2] - dtime
 			
 			self.height       = self.collisionbox[2]
@@ -1308,8 +1304,10 @@ open_ai.register_mob = function(name,def)
 			
 		end,
 	
+		--remember total age and time existing since spawned
 		find_age = function(self,dtime)
 			self.age = self.age + dtime
+			self.time_existing = self.time_existing + dtime
 		end,
 
 		--what mobs do on each server step
