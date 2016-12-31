@@ -113,6 +113,7 @@
 open_ai = {}
 open_ai.mob_count = 0
 open_ai.max_mobs = 2000 -- limit the max number of mobs existing in the world
+open_ai.defaults = {} --fix a weird entity glitch where entities share collision boxes
 
 dofile(minetest.get_modpath("open_ai").."/leash.lua")
 dofile(minetest.get_modpath("open_ai").."/safari_ball.lua")
@@ -124,12 +125,16 @@ dofile(minetest.get_modpath("open_ai").."/rayguns.lua")
 
 
 open_ai.register_mob = function(name,def)
+	--store default collision box globally
+	open_ai.defaults["open_ai:"..name] = {}
+	open_ai.defaults["open_ai:"..name]["collisionbox"] = table.copy(def.collisionbox)
+	
 	minetest.register_entity("open_ai:"..name, {
 		--Do simpler definition variables for ease of use
 		mob          = true,
 		name         = "open_ai:"..name,
 		
-		collisionbox = def.collisionbox,--{-def.width/2,-def.height/2,-def.width/2,def.width/2,def.height/2,def.width/2},
+		collisionbox = def.collisionbox,--{-def.width/2,-def.height/2,-def.width/2,def.width/2,def.height/2,def.width/2},		
 		height       = def.collisionbox[2], --sample from bottom of collisionbox - absolute for the sake of math
 		width        = math.abs(def.collisionbox[1]), --sample first item of collisionbox
 		--vars for collision detection and floating
@@ -199,7 +204,7 @@ open_ai.register_mob = function(name,def)
 		attached_name= nil,
 		jump_only    = def.jump_only,
 		jumped       = false,
-		--scale_size   = 1,
+		scale_size   = 1,
 		
 		
 		--Pathfinding variables
@@ -208,6 +213,9 @@ open_ai.register_mob = function(name,def)
 		target_name = nil,
 		following = false,
 		
+		--Internal variables
+		age = 0,
+		time_existing = 0, --this won't be saved for static data polling
 		
 		
 		--what mobs do when created
@@ -251,12 +259,14 @@ open_ai.register_mob = function(name,def)
 				self.object:set_properties({textures = self.chair_textures})
 			end
 			
-			
+						
 			--re apply collisionbox and visualsize
-			if self.scale_size and self.collisionbox and self.visual_size then
+			if self.scale_size ~= 1 and self.collisionbox and self.visual_size then
 				self.object:set_properties({collisionbox = self.collisionbox,visual_size = self.visual_size})
-			--or set new if spawned
 			else
+				--fix the glitch of entity collisionboxes being shared between entities
+				self.object:set_properties({collisionbox = table.copy(open_ai.defaults[self.name]["collisionbox"])})
+				self.collisionbox = table.copy(open_ai.defaults[self.name]["collisionbox"])
 				self.scale_size = 1
 			end
 			
@@ -275,12 +285,18 @@ open_ai.register_mob = function(name,def)
 		
 		--when the mob entity is deactivated
 		get_staticdata = function(self)
+			--don't get static data if just spawning
+			--print("age: "..self.time_existing)
+			--if self.time_existing == 0 then
+			--	print("returning")
+			--	return
+			--end
 			--print("staticdata at "..dump(self.object:getpos()))
 			--self.global_mob_counter(self)
 			local serialize_table = {}
 			for key,value in pairs(self) do
 				--don't get object item
-				if key ~= "object" then
+				if key ~= "object" and key ~= "time_existing" then
 					--don't do userdata
 					if type(value) == "userdata" then
 						value = nil
@@ -289,7 +305,7 @@ open_ai.register_mob = function(name,def)
 				end
 			end
 			--manually save collisionbox
-			serialize_table["collisionbox"] = self.collisionbox
+			--serialize_table["collisionbox"] = self.collisionbox
 			local value_string = minetest.serialize(serialize_table)
 			return(value_string)
 		end,
@@ -1232,8 +1248,10 @@ open_ai.register_mob = function(name,def)
 		change_size = function(self,dtime)
 			--initialize this variable here for testing
 			if self.grow_timer == nil or self.size_change == nil then
+				--print("returning nil")
 				return
 			end
+		
 			
 			
 			self.grow_timer = self.grow_timer - 0.1
@@ -1246,7 +1264,7 @@ open_ai.register_mob = function(name,def)
 				return
 			end
 			
-			
+			print("failing")
 
 			
 			--change based on variable
@@ -1271,6 +1289,7 @@ open_ai.register_mob = function(name,def)
 				self.visual_size = {x=self.visual_size.x * size_multiplier, y = self.visual_size.y * size_multiplier}
 			end
 			
+			print("changing")
 			
 			--self.collisionbox[2] = self.collisionbox[2] - dtime
 			
@@ -1288,7 +1307,10 @@ open_ai.register_mob = function(name,def)
 			self.object:set_properties({collisionbox = self.collisionbox,visual_size=self.visual_size})
 			
 		end,
-
+	
+		find_age = function(self,dtime)
+			self.age = self.age + dtime
+		end,
 
 		--what mobs do on each server step
 		on_step = function(self,dtime)
@@ -1300,7 +1322,7 @@ open_ai.register_mob = function(name,def)
 			self.set_animation(self,dtime)
 			self.movement(self,dtime)
 			self.velocity_damage(self,dtime)
-			
+			self.find_age(self,dtime)
 			if self.user_defined_on_step then
 				self.user_defined_on_step(self,dtime)
 			end
