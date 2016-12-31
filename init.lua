@@ -840,7 +840,7 @@ open_ai.register_mob = function(name,def)
 				self.velocity = self.liquid
 			end
 			end
-			
+					
 		end,
 		
 		--check if a mob should follow a player when holding an item
@@ -1230,6 +1230,8 @@ open_ai.register_mob = function(name,def)
 			end
 		end,
 		
+		
+		
 		--how a player puts a "chair" on a mob
 		place_chair = function(self,clicker)
 			if self.tameable == false or self.tamed == false or self.rideable == false or self.mob_chair == nil or self.has_chair == true then
@@ -1336,8 +1338,49 @@ open_ai.register_mob = function(name,def)
 			self.time_existing = self.time_existing + dtime
 		end,
 
+		--do particles
+		particles_and_sounds = function(self)
+			local vel = self.object:getvelocity()
+			
+			--falling into a liquid
+			if self.liquid ~= 0 and (self.old_liquid and self.old_liquid == 0) then
+				if vel.y < -3 then
+					local pos = self.object:getpos()
+					pos.y = pos.y + self.center + 0.1
+					
+					--play splash sound
+					minetest.sound_play("open_ai_falling_into_water", {
+						pos = pos,
+						max_hear_distance = 10,
+						gain = 1.0,
+					})
+					minetest.add_particlespawner({
+						amount = 10,
+						time = 0.01,
+						minpos = {x=pos.x-0.5, y=pos.y, z=pos.z-0.5},
+						maxpos = {x=pos.x+0.5, y=pos.y, z=pos.z+0.5},
+						minvel = {x=0, y=0, z=0},
+						maxvel = {x=0, y=0, z=0},
+						minacc = {x=0, y=0.5, z=0},
+						maxacc = {x=0, y=2, z=0},
+						minexptime = 1,
+						maxexptime = 2,
+						minsize = 1,
+						maxsize = 2,
+						collisiondetection = true,
+						vertical = false,
+						texture = "bubble.png",
+					})
+				end
+			end	
+			
+			--remember old liquid state here because it's only accessed by this function
+			self.old_liquid = self.liquid
+		end,
+		
 		--what mobs do on each server step
 		on_step = function(self,dtime)
+			self.particles_and_sounds(self)
 			self.change_size(self,dtime)
 			self.check_for_hurt(self,dtime)
 			self.check_to_follow(self)
@@ -1347,6 +1390,7 @@ open_ai.register_mob = function(name,def)
 			self.movement(self,dtime)
 			self.velocity_damage(self,dtime)
 			self.find_age(self,dtime)
+			
 			if self.user_defined_on_step then
 				self.user_defined_on_step(self,dtime)
 			end
@@ -1364,3 +1408,4 @@ end
 
 --run api call
 dofile(minetest.get_modpath("open_ai").."/mobs.lua")
+

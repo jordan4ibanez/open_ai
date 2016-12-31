@@ -399,7 +399,7 @@ open_ai.register_mob("slime",{
 		jump_end = 95,
 	},
 	automatic_face_movement_dir = -90, --what direction the mob faces in
-	makes_footstep_sound = true, --if a mob makes footstep sounds
+	makes_footstep_sound = false, --if a mob makes footstep sounds
 	visual_size = {x=1,y=1}, --resizes a mob mesh if needed
 	
 	--mob behavior variables
