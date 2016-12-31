@@ -41,6 +41,7 @@ minetest.register_entity("open_ai:growth_ray_ray", {
 				object:get_luaentity().grow_timer = 0.25
 				object:get_luaentity().size_change = 1
 				self.object:remove()
+				return
 			end
 		end
 		
@@ -98,6 +99,7 @@ minetest.register_entity("open_ai:shrink_ray_ray", {
 				object:get_luaentity().grow_timer = 0.25
 				object:get_luaentity().size_change = -1
 				self.object:remove()
+				return
 			end
 		end
 		

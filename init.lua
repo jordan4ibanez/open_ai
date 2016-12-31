@@ -1228,7 +1228,7 @@ open_ai.register_mob = function(name,def)
 		--How a mob changes it's size
 		change_size = function(self,dtime)
 			--initialize this variable here for testing
-			if self.grow_timer == nil then
+			if self.grow_timer == nil or self.size_change == nil then
 				return
 			end
 			
