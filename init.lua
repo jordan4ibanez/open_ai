@@ -199,7 +199,7 @@ open_ai.register_mob = function(name,def)
 		attached_name= nil,
 		jump_only    = def.jump_only,
 		jumped       = false,
-		scale_size   = 1,
+		--scale_size   = 1,
 		
 		
 		--Pathfinding variables
@@ -253,8 +253,10 @@ open_ai.register_mob = function(name,def)
 			
 			
 			--re apply collisionbox and visualsize
-			if self.scale_size ~= 1 and self.collisionbox and self.visual_size then
+			if self.scale_size and self.collisionbox and self.visual_size then
 				self.object:set_properties({collisionbox = self.collisionbox,visual_size = self.visual_size})
+			else
+				self.scale_size = 1
 			end
 			
 			if self.user_defined_on_activate then
