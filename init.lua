@@ -1118,7 +1118,7 @@ open_ai.register_mob = function(name,def)
 				local vec = {x=pos.x-pos2.x, z=pos.z-pos2.z}
 				--how strong a leash is pulling up a mob
 				
-				--only do local yaw in this function because you're literally punching a mob back
+				--only do local yaw in this function punching a mob back and it doesn't need to change yaw
 				local yaw = math.atan(vec.z/vec.x)+ math.pi / 2
 				
 				if pos2.x > pos.x then
