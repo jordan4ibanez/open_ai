@@ -1107,6 +1107,32 @@ open_ai.register_mob = function(name,def)
 			if self.user_defined_on_punch then
 				self.user_defined_on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
 			end
+			
+			--knock back the mob on punch
+			local vel = self.object:getvelocity()
+			if puncher:is_player() and ( vel.y == 0 and (self.old_velocity_y and self.old_velocity_y <= 0)) then
+				print("knockback")
+				local pos = self.object:getpos()
+				local pos2 = puncher:getpos()
+				
+				local vec = {x=pos.x-pos2.x, z=pos.z-pos2.z}
+				--how strong a leash is pulling up a mob
+				
+				--only do local yaw in this function because you're literally punching a mob back
+				local yaw = math.atan(vec.z/vec.x)+ math.pi / 2
+				
+				if pos2.x > pos.x then
+					yaw = yaw+math.pi
+				end
+				--use velocity calculation to find whether to jump
+				local x = (math.sin(yaw)) * self.velocity
+				local z = (math.cos(yaw)*-1) * self.velocity
+				
+				self.object:setvelocity({x=x,y=self.jump_height,z=z})
+				self.jumped = true
+			end
+			
+			--die
 			if self.object:get_hp() <= 0 then
 				self.global_mob_counter(self) --remove from global mob count
 				--return player back to normal scale
