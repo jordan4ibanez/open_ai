@@ -1125,8 +1125,8 @@ open_ai.register_mob = function(name,def)
 					yaw = yaw+math.pi
 				end
 				--use velocity calculation to find whether to jump
-				local x = (math.sin(yaw)) * self.velocity
-				local z = (math.cos(yaw)*-1) * self.velocity
+				local x = (math.sin(yaw)) * self.max_velocity
+				local z = (math.cos(yaw)*-1) * self.max_velocity
 				
 				self.object:setvelocity({x=x,y=self.jump_height,z=z})
 				self.jumped = true
