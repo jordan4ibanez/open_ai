@@ -592,7 +592,16 @@ open_ai.register_mob = function(name,def)
 			
 		end,
 		--if fish is on land, flop
-		flop_on_land = function(self)
+		flop_on_land = function(self,dtime)
+			self.jump_timer = self.jump_timer + dtime
+			
+			--save resources
+			if self.jump_timer < 0.5 then
+				--print("returning")
+				return
+			end
+			
+			self.jump_timer = 0
 			
 			--if caught then don't execute
 			if self.object:get_attach() then
@@ -600,21 +609,12 @@ open_ai.register_mob = function(name,def)
 			end
 			
 			local vel = self.object:getvelocity()
-			local pos = self.object:getpos()
-			--return to save cpu
-			if vel.y ~= 0 then
+			
+			if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
+				--print("velocity failure")
 				return
 			end
-		
-		
-			--find out if node is underneath
-			local under_node = minetest.get_node({x=pos.x,y=pos.y+self.height-0.1,z=pos.z}).name
-			
-			if minetest.registered_nodes[under_node].walkable == false then
-				--print("JUMP FAILURE")
-				return
-			end
-			
+					
 			self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
 			self.jumped = true
 			
@@ -722,7 +722,7 @@ open_ai.register_mob = function(name,def)
 			if self.jump_only == true then
 				self.jumping_movement(self,dtime)
 			--else normal jumping
-			else
+			elseif not self.liquid_mob == true then
 				self.jump(self,dtime)
 			end
 			
@@ -766,7 +766,7 @@ open_ai.register_mob = function(name,def)
 			if self.liquid_mob == true and self.liquid ~= 0 then
 				gravity = self.swim_pitch
 			elseif self.liquid_mob == true and self.liquid == 0 then
-				self.flop_on_land(self)
+				self.flop_on_land(self,dtime)
 			end
 			
 			
