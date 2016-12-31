@@ -3,7 +3,7 @@ open_ai.register_mob("fish",{
 	--mob physical variables
 	--			   {keep left right forwards and backwards equal, will not work correctly if not equal
 	--             {left, below, right, forwards, above , backwards}
-	collisionbox = {-0.25, -0.25, -0.25, 0.25, 0.25, 0.25}, --the collision box of the mesh,
+	collisionbox = {-0.15, 0.0, -0.15, 0.15, 0.35, 0.15}, --the collision box of the mesh,
 	
 	collision_radius = 0.5, --the radius around the entity which will check for collision
 						  --use the biggest number in your collision box for best result
