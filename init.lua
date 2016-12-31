@@ -255,6 +255,7 @@ open_ai.register_mob = function(name,def)
 			--re apply collisionbox and visualsize
 			if self.scale_size and self.collisionbox and self.visual_size then
 				self.object:set_properties({collisionbox = self.collisionbox,visual_size = self.visual_size})
+			--or set new if spawned
 			else
 				self.scale_size = 1
 			end
