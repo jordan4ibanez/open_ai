@@ -1233,11 +1233,11 @@ open_ai.register_mob = function(name,def)
 			end
 			
 			
-			self.grow_timer = self.grow_timer - dtime
+			self.grow_timer = self.grow_timer - 0.1
 			
 			--limit ray size
-			if self.grow_timer <= 0 or ((self.scale_size > 5 and self.size_change > 0) or (self.scale_size < -5 and self.size_change < 0)) then
-				print("size too big or too small")
+			if self.grow_timer <= 0 or ((self.scale_size > 5 and self.size_change > 0) or (self.scale_size < 0.2 and self.size_change < 0)) then
+				--print("size too big or too small")
 				self.grow_timer = nil
 				self.size_change = nil
 				return
@@ -1249,7 +1249,7 @@ open_ai.register_mob = function(name,def)
 			--change based on variable
 			local size_multiplier = 1.1
 			if self.size_change < 0 then
-				print("shrink")
+				--print("shrink")
 				self.scale_size = self.scale_size / 1.1
 				
 				--iterate through collisionbox
@@ -1258,7 +1258,7 @@ open_ai.register_mob = function(name,def)
 				end
 				self.visual_size = {x=self.visual_size.x / size_multiplier, y = self.visual_size.y / size_multiplier}				
 			elseif self.size_change > 0 then
-				print("grow")
+				--print("grow")
 				self.scale_size = self.scale_size * 1.1
 				
 				--iterate through collisionbox
