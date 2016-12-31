@@ -120,6 +120,7 @@ dofile(minetest.get_modpath("open_ai").."/spawning.lua")
 dofile(minetest.get_modpath("open_ai").."/fishing.lua")
 dofile(minetest.get_modpath("open_ai").."/commands.lua")
 dofile(minetest.get_modpath("open_ai").."/items.lua")
+dofile(minetest.get_modpath("open_ai").."/rayguns.lua")
 
 
 open_ai.register_mob = function(name,def)
@@ -197,7 +198,8 @@ open_ai.register_mob = function(name,def)
 		attached     = nil,
 		attached_name= nil,
 		jump_only    = def.jump_only,
-		jumped       = false, 
+		jumped       = false,
+		scale_size   = 1,
 		
 		
 		--Pathfinding variables
@@ -250,6 +252,11 @@ open_ai.register_mob = function(name,def)
 			end
 			
 			
+			--re apply collisionbox and visualsize
+			if self.scale_size ~= 1 and self.collisionbox and self.visual_size then
+				self.object:set_properties({collisionbox = self.collisionbox,visual_size = self.visual_size})
+			end
+			
 			if self.user_defined_on_activate then
 				self.user_defined_on_activate(self, staticdata, dtime_s)
 			end
@@ -278,6 +285,8 @@ open_ai.register_mob = function(name,def)
 					serialize_table[key] = value
 				end
 			end
+			--manually save collisionbox
+			serialize_table["collisionbox"] = self.collisionbox
 			local value_string = minetest.serialize(serialize_table)
 			return(value_string)
 		end,
@@ -749,6 +758,7 @@ open_ai.register_mob = function(name,def)
 			end
 				
 			--stop constant motion if stopped
+			--[[
 			if (math.abs(vel.x) < 0.1 and math.abs(vel.z) < 0.1) and (vel.x ~= 0 and vel.z ~= 0) and self.velocity == 0 then
 				self.object:setvelocity({x=0,y=vel.y,z=0})
 			--only apply gravity if stopped
@@ -759,41 +769,42 @@ open_ai.register_mob = function(name,def)
 				self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})				
 			--do normal things
 			elseif self.velocity ~= 0 then
-				--land mob
-				if self.liquid_mob == false or self.liquid_mob == nil then
-					--jump only mobs
-					if self.jump_only == true then
-						--fall and stop because jump_only mobs only jump around to move
-						if gravity == -10 and vel.y == 0 then 
-							self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})				
-						--move around normally if jumping
-						elseif gravity == -10 and vel.y ~= 0 then
-							self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})
-						--allow jump only mobs to swim
-						else 
-							self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
-						end				
-					--normal walking mobs
-					else
-						--fall
-						if gravity == -10 then 
-							self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})				
-						--swim
-						else 
-							self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
-						end
-					end
-				--liquid mob
-				elseif self.liquid_mob == true then
-					--out of water
-					if gravity == -10 and self.liquid == 0 then 
-						self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})
-					--swimming
+			]]--
+			--land mob
+			if self.liquid_mob == false or self.liquid_mob == nil then
+				--jump only mobs
+				if self.jump_only == true then
+					--fall and stop because jump_only mobs only jump around to move
+					if gravity == -10 and vel.y == 0 then 
+						self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})				
+					--move around normally if jumping
+					elseif gravity == -10 and vel.y ~= 0 then
+						self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})
+					--allow jump only mobs to swim
 					else 
 						self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
-					end			
+					end				
+				--normal walking mobs
+				else
+					--fall
+					if gravity == -10 then 
+						self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=-10,z=(z - vel.z + c_z)*self.acceleration})				
+					--swim
+					else 
+						self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
+					end
 				end
+			--liquid mob
+			elseif self.liquid_mob == true then
+				--out of water
+				if gravity == -10 and self.liquid == 0 then 
+					self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})
+				--swimming
+				else 
+					self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
+				end			
 			end
+			--end
 			
 			--this is used for jumping
 			self.old_velocity_y = vel.y
@@ -1192,7 +1203,6 @@ open_ai.register_mob = function(name,def)
 		--what happens when you right click a mob
 		on_rightclick = function(self, clicker)
 			
-					
 			self.try_to_ride(self,clicker)
 			
 			self.place_chair(self,clicker) -- this after try to ride so player puts on chair before riding
@@ -1215,8 +1225,71 @@ open_ai.register_mob = function(name,def)
 		user_defined_on_rightclick = def.on_rightclick,
 
 
+		--How a mob changes it's size
+		change_size = function(self,dtime)
+			--initialize this variable here for testing
+			if self.grow_timer == nil then
+				return
+			end
+			
+			
+			self.grow_timer = self.grow_timer - dtime
+			
+			--limit ray size
+			if self.grow_timer <= 0 or ((self.scale_size > 5 and self.size_change > 0) or (self.scale_size < -5 and self.size_change < 0)) then
+				print("size too big or too small")
+				self.grow_timer = nil
+				self.size_change = nil
+				return
+			end
+			
+			
+
+			
+			--change based on variable
+			local size_multiplier = 1.1
+			if self.size_change < 0 then
+				print("shrink")
+				self.scale_size = self.scale_size / 1.1
+				
+				--iterate through collisionbox
+				for i = 1,table.getn(self.collisionbox) do
+					self.collisionbox[i] = self.collisionbox[i] / size_multiplier
+				end
+				self.visual_size = {x=self.visual_size.x / size_multiplier, y = self.visual_size.y / size_multiplier}				
+			elseif self.size_change > 0 then
+				print("grow")
+				self.scale_size = self.scale_size * 1.1
+				
+				--iterate through collisionbox
+				for i = 1,table.getn(self.collisionbox) do
+					self.collisionbox[i] = self.collisionbox[i] * size_multiplier
+				end
+				self.visual_size = {x=self.visual_size.x * size_multiplier, y = self.visual_size.y * size_multiplier}
+			end
+			
+			
+			--self.collisionbox[2] = self.collisionbox[2] - dtime
+			
+			self.height       = self.collisionbox[2]
+			self.width        = math.abs(self.collisionbox[1])
+			--vars for collision detection and floating
+			self.overhang     = self.collisionbox[5]
+			--create variable that can be added to pos to find center
+			self.center = (self.collisionbox[5]+self.collisionbox[2])/2
+			
+			
+			
+			
+			--attempt to set the collionbox to internal yadayada
+			self.object:set_properties({collisionbox = self.collisionbox,visual_size=self.visual_size})
+			
+		end,
+
+
 		--what mobs do on each server step
 		on_step = function(self,dtime)
+			self.change_size(self,dtime)
 			self.check_for_hurt(self,dtime)
 			self.check_to_follow(self)
 			self.behavior(self,dtime)
