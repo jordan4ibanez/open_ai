@@ -1111,7 +1111,7 @@ open_ai.register_mob = function(name,def)
 			--knock back the mob on punch
 			local vel = self.object:getvelocity()
 			if puncher:is_player() and ( vel.y == 0 and (self.old_velocity_y and self.old_velocity_y <= 0)) then
-				print("knockback")
+				--print("knockback")
 				local pos = self.object:getpos()
 				local pos2 = puncher:getpos()
 				
