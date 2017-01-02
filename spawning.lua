@@ -1,3 +1,6 @@
+--possibly run this on generated to spawn mobs in newly loaded chunks
+
+
 --this is debug to spawn mobs
 open_ai.spawn_step = 0
 open_ai.spawn_timer = 1 --spawn every 15 seconds
@@ -16,6 +19,7 @@ minetest.register_globalstep(function(dtime)
 					local test_for_node = minetest.find_nodes_in_area_under_air({x=pos.x-20,y=pos.y-20,z=pos.z-20}, {x=pos.x+20,y=pos.y+20,z=pos.z+20}, "default:dirt_with_grass")
 					--if the table has a node position then spawn the mob
 					local positions = table.getn(test_for_node)
+					--if position is above 0 then spawn node was found successfully 
 					if positions > 0 then
 						--get a random node out of the table and add 1 y to it to spawn mob above it
 						--use the mob height eventually to spawn on the node exactly
