@@ -1,6 +1,6 @@
 This is a minetest mobs api
 
-[Testlink](https://github.com/jordan4ibanez/open_ai/wiki/test)
+[Testlink](https://github.com/jordan4ibanez/open_ai/wiki)
 
  --PROJECT GOALS
  --[[
