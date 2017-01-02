@@ -1153,7 +1153,6 @@ open_ai.register_mob = function(name,def)
 					self.attached:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
 				end
 				end
-				print("adding item")
 				local pos = self.object:getpos()
 				minetest.add_item(pos,self.drops)
 				
