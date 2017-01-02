@@ -125,8 +125,11 @@ dofile(minetest.get_modpath("open_ai").."/rayguns.lua")
 
 
 open_ai.register_mob = function(name,def)
-	--add mobs to spawn table
-	table.insert(open_ai.spawn_table,name)
+	--add mobs to spawn table - with it's spawn node - and if liquid mob
+	open_ai.spawn_table[name] = {}
+	open_ai.spawn_table[name].spawn_node = def.spawn_node
+	open_ai.spawn_table[name].liquid_mob = def.liquid_mob
+	
 	--store default collision box globally
 	open_ai.defaults["open_ai:"..name] = {}
 	open_ai.defaults["open_ai:"..name]["collisionbox"] = table.copy(def.collisionbox)

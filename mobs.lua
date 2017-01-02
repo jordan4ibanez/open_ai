@@ -46,6 +46,7 @@ open_ai.register_mob("fish",{
 	leash       = false,
 	rides_cart  = false,
 	hostile     = false,
+	spawn_node  = "default:water_source",
 	
 	--safari ball variables
 	ball_color = "ee7600",--color in hex, can be any color 
@@ -127,6 +128,7 @@ open_ai.register_mob("sheep",{
 	leash       = true,
 	rides_cart  = true,
 	hostile     = false,
+	spawn_node  = "default:dirt_with_grass",
 	
 	--safari ball variables
 	ball_color = "0000ff",--color in hex, can be any color 
@@ -218,6 +220,7 @@ open_ai.register_mob("horse",{
 	tame_click_max = 10, --how many times a player has to click max              }
 	mob_chair   = "open_ai:saddle", --what you use to sit on the mob, doubles the speed it can go
 	chair_textures = {"equine2-saddle.png"}, --changes the mob texture to this when wearing a saddle
+	spawn_node  = "default:dirt_with_grass",
 	
 	--safari ball variables
 	ball_color = "551a8b",--color in hex, can be any color 
@@ -298,6 +301,7 @@ open_ai.register_mob("santa",{
 	leash       = true,
 	rides_cart  = true,
 	hostile     = false,
+	spawn_node  = "default:dirt_with_grass",
 	
 	--safari ball variables
 	ball_color = "FF0000",--color in hex, can be any color
@@ -407,6 +411,7 @@ open_ai.register_mob("slime",{
 	leash       = true,
 	rides_cart  = true,
 	hostile     = false,
+	spawn_node  = "default:dirt_with_grass",
 	
 	--safari ball variables
 	ball_color = "32CD32",--color in hex, can be any color 
