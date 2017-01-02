@@ -222,6 +222,9 @@ open_ai.register_mob = function(name,def)
 		age = 0,
 		time_existing = 0, --this won't be saved for static data polling
 		
+		--etc variables
+		drops = def.drops,
+		
 		
 		--what mobs do when created
 		on_activate = function(self, staticdata, dtime_s)
@@ -1150,6 +1153,10 @@ open_ai.register_mob = function(name,def)
 					self.attached:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
 				end
 				end
+				print("adding item")
+				local pos = self.object:getpos()
+				minetest.add_item(pos,self.drops)
+				
 				if self.user_defined_on_die then
 					self.user_defined_on_die(self, puncher, time_from_last_punch, tool_capabilities, dir)
 				end

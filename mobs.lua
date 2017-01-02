@@ -49,7 +49,10 @@ open_ai.register_mob("fish",{
 	spawn_node  = "default:water_source",
 	
 	--safari ball variables
-	ball_color = "ee7600",--color in hex, can be any color 
+	ball_color = "ee7600",--color in hex, can be any color
+	
+	--what a mob drops on death
+	drops = "default:coral_orange",
 	
 	--user defined functions
 	on_step = function(self,dtime)
@@ -132,6 +135,9 @@ open_ai.register_mob("sheep",{
 	
 	--safari ball variables
 	ball_color = "0000ff",--color in hex, can be any color 
+	
+	--what a mob drops on death
+	drops = "wool:white",
 	
 	--user defined functions
 	on_step = function(self,dtime)
@@ -225,6 +231,9 @@ open_ai.register_mob("horse",{
 	--safari ball variables
 	ball_color = "551a8b",--color in hex, can be any color 
 	
+	--what a mob drops on death
+	drops = "farming:seed_wheat",
+	
 	--user defined functions
 	on_step = function(self,dtime)
 		--print("test")
@@ -305,6 +314,9 @@ open_ai.register_mob("santa",{
 	
 	--safari ball variables
 	ball_color = "FF0000",--color in hex, can be any color
+	
+	--what a mob drops on death
+	drops = "wool:red",
 	
 	--user defined functions
 	on_step = function(self,dtime)
@@ -416,7 +428,8 @@ open_ai.register_mob("slime",{
 	--safari ball variables
 	ball_color = "32CD32",--color in hex, can be any color 
 	
-	
+	--what a mob drops on death
+	drops = "dye:green",
 	
 	--user defined functions
 	on_step = function(self,dtime)

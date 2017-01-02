@@ -3,7 +3,7 @@
 
 --this is debug to spawn mobs
 open_ai.spawn_step = 0
-open_ai.spawn_timer = 1 --spawn every 15 seconds
+open_ai.spawn_timer = 3 --spawn every 15 seconds
 open_ai.spawn_table = {}
 
 minetest.register_globalstep(function(dtime)
