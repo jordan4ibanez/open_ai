@@ -4,15 +4,359 @@ open_ai = {}
 open_ai.mob_count = 0
 open_ai.max_mobs = 2000 -- limit the max number of mobs existing in the world
 open_ai.defaults = {} --fix a weird entity glitch where entities share collision boxes
+open_ai.spawn_table = {} --the table which mobs can globaly store data
+
 
 dofile(minetest.get_modpath("open_ai").."/leash.lua")
 dofile(minetest.get_modpath("open_ai").."/safari_ball.lua")
-dofile(minetest.get_modpath("open_ai").."/spawning.lua")
+--dofile(minetest.get_modpath("open_ai").."/spawning.lua")
 dofile(minetest.get_modpath("open_ai").."/fishing.lua")
 dofile(minetest.get_modpath("open_ai").."/commands.lua")
 dofile(minetest.get_modpath("open_ai").."/items.lua")
 dofile(minetest.get_modpath("open_ai").."/rayguns.lua")
 
+
+
+--[[
+TEMP NOTES
+
+-After moving functions into classes - 
+
+-Adjust collision radius to include scale-
+-half collision multiplier and also add collision X and Z into collided object if not player to allow for bigger mobs to collide-
+-Try to push away player somehow?-
+
+-if data is nil then restore mob to original state or remove and spawn new mob of the same type-
+
+-put all user functions next to eachother
+
+-open voxelmanip to not jump over fences, check +- 1 x and z
+
+]]--
+
+--------------------------------------------------------------------------------------------------------
+--the activation class
+open_ai.activation = {}
+open_ai.activation.__index = open_ai.activation
+
+--this function restored staticdata variables
+function open_ai.activation:restore_variables(self,staticdata,dtime_s)
+	--print("activating at "..dump(self.object:getpos()))
+	if string.sub(staticdata, 1, string.len("return")) == "return" then
+		local data = minetest.deserialize(staticdata)
+		for key,value in pairs(data) do
+			self[key] = value
+		end
+	end
+	open_ai.activation:restore_function(self)
+	self.user_defined_on_activate(self,staticdata,dtime_s)
+end
+
+--this keeps the mob consistant
+--restores variables and state
+function open_ai.activation:restore_function(self)
+	--keep hp
+	if self.old_hp then
+		self.object:set_hp(self.old_hp)
+	end
+	
+	--keep leashes connected when respawning
+	if self.target_name then
+		self.target = minetest.get_player_by_name(self.target_name)
+	end
+	
+	--keep object riding
+	if self.attached_name then
+		self.attached = minetest.get_player_by_name(self.attached_name)
+		self.attached:set_attach(self.object, "", {x=0, y=self.visual_offset, z=0}, {x=0, y=self.automatic_face_movement_dir+90, z=0})
+		if self.attached:is_player() == true then
+			self.attached:set_properties({
+				visual_size = {x=1/self.visual_size.x, y=1/self.visual_size.y},
+			})
+			--set players eye offset for mob
+			self.attached:set_eye_offset({x=0,y=self.eye_offset,z=0},{x=0,y=0,z=0})
+		end
+	end
+	
+	--set the amount of times a player has to feed the mob to tame it
+	if not self.tame_amount and self.tameable == true then
+		self.tame_amount = math.random(self.tame_click_min,self.tame_click_max)
+	end
+	--re apply the mob chair texture
+	if self.has_chair and self.has_chair == true then
+		self.object:set_properties({textures = self.chair_textures})
+	end
+			
+	--re apply collisionbox and visualsize
+	if self.scale_size ~= 1 and self.collisionbox and self.visual_size then
+		self.object:set_properties({collisionbox = self.collisionbox,visual_size = self.visual_size})
+	else
+		--fix the glitch of entity collisionboxes being shared between entities
+		self.object:set_properties({collisionbox = table.copy(open_ai.defaults[self.name]["collisionbox"])})
+		self.collisionbox = table.copy(open_ai.defaults[self.name]["collisionbox"])
+		self.scale_size = 1
+	end
+	
+	
+	print("add to global id table")
+end
+function open_ai.activation:getstaticdata(self)
+	--don't get static data if just spawning
+	--print("age: "..self.time_existing)
+	--if self.time_existing == 0 then
+	--	print("returning")
+	--	return
+	--end
+	--print("staticdata at "..dump(self.object:getpos()))
+	
+	local serialize_table = {}
+	for key,value in pairs(self) do
+		--don't get object item
+		if key ~= "object" and key ~= "time_existing" then
+			--don't do userdata
+			if type(value) == "userdata" then
+				value = nil
+			end
+			serialize_table[key] = value
+		end
+	end
+	
+	local value_string = minetest.serialize(serialize_table)
+	return(value_string)
+end
+------------------------------------------------------------------------------------------------------------# end of activation class
+
+--the movement class
+open_ai.movement = {}
+open_ai.movement.__index = open_ai.movement
+--the jump subclass
+open_ai.movement.jump = {}
+open_ai.movement.jump.__index = open_ai.movement.jump
+
+--allow players to make mob jump when riding mobs,
+--make function to jump, bool to check velocity
+--moves bool - x and z for flopping and standing still
+
+
+--the function that calls all the jump functions
+function open_ai.movement.jump:jumponstep(self,dtime)
+	open_ai.movement.jump:jumpcounter(self,dtime)
+	open_ai.movement.jump:jump(self,true,true)
+end
+
+--this adds the jump timer
+function open_ai.movement.jump:jumpcounter(self,dtime)
+	self.jump_timer = self.jump_timer + dtime
+end
+
+--the function to set velocity
+function open_ai.movement.jump:jump(self,velcheck,move)
+	local vel = self.object:getvelocity() --use self.vel
+	--check if standing on node or within jump timer
+	if self.jump_timer < 0.5 or (velcheck == true and (vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil))) then
+		return
+	end
+	self.jump_timer = 0
+	--check for nan
+	if self.yaw ~= self.yaw then
+		return
+	end
+	--if mob jumps with horizontal movement
+	local x = 0
+	local z = 0
+	if move == true then
+		x = (math.sin(self.yaw) * -1) * self.velocity
+		z = (math.cos(self.yaw)) * self.velocity
+	end
+	--jump
+	self.object:setvelocity({x=x,y=self.jump_height,z=z})
+	--execute player defined function
+	if self.user_defined_on_jump then
+		self.user_defined_on_jump(self,dtime)
+	end
+end
+
+
+
+
+
+--[[
+ridden_jump = function(self,dtime)
+	if self.attached ~= nil then
+	local pos = self.object:getpos()
+	local vel = self.object:getvelocity()
+	if self.attached:is_player() then
+		if self.attached:get_player_control().jump == true then
+			
+			--jump only if standing on node
+			if self.liquid == 0 then
+				--return to save cpu
+				
+				--use velocity calculation to find whether to jump
+				
+				
+				self.jumped = true
+			--always allowed to jump in water
+			elseif self.liquid ~= 0 then
+				--use velocity calculation to find whether to jump
+				local x = (math.sin(self.yaw) * -1) * self.velocity
+				local z = (math.cos(self.yaw)) * self.velocity
+				self.object:setvelocity({x=x,y=self.jump_height,z=z})
+				self.jumped = true
+			end
+		end
+	end
+	end
+end,
+
+
+
+--jump only mob movements
+jumping_movement = function(self,dtime)
+	self.jump_timer = self.jump_timer + dtime
+	--print(self.jump_timer)
+	--only check to jump every half second
+	if self.jump_timer >= 0.5 then
+		
+		local pos = self.object:getpos()
+		local vel = self.object:getvelocity()
+		self.jump_timer = 0
+		
+		--return to save cpu
+		if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
+			--print("velocity failure")
+			return
+		end
+		
+
+		--use velocity calculation to find whether to jump
+		local x = (math.sin(self.yaw) * -1) * self.velocity
+		local z = (math.cos(self.yaw)) * self.velocity
+
+		self.object:setvelocity({x=x,y=self.jump_height,z=z})
+		self.jumped = true
+		
+	end
+end,
+--decide wether an entity should jump or change direction
+jump = function(self,dtime)
+	self.jump_timer = self.jump_timer + dtime
+	if self.jump_timer >= 0.25 then
+		self.jump_timer = 0
+		--only jump on it's own if player is not riding		
+		if self.attached == nil then
+			local vel = self.object:getvelocity()
+			
+			--don't execute if liquid mob
+			if self.liquid_mob == true then
+				--use this calc to find if it should change direction
+				local x = (math.sin(self.yaw) * -1)
+				local z = (math.cos(self.yaw))
+				
+				--reset the timer to change direction
+				if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
+					self.behavior_timer = self.behavior_timer_goal
+				end
+			else
+				--put this here because it's only used by pathfinding jumping
+				local pos = self.object:getpos()
+				
+				--only jump when path step is higher up
+				if self.following == true and self.leashed == false then
+					--only try to jump if pathfinding exists
+					if self.path and table.getn(self.path) > 1 then
+						--don't jump if current position is equal to or higher than goal					
+						if vector.round(pos).y >= self.path[2].y then
+							return
+						end
+					--don't jump if pathfinding doesn't exist
+					else
+						return
+					end
+					
+					--return to save cpu
+					if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
+						--print("velocity failure")
+						return
+					end
+					
+					--return if nan
+					if self.yaw ~= self.yaw then
+						return
+					end
+													
+					--use velocity calculation to find whether to jump
+					local x = (math.sin(self.yaw) * -1) * self.velocity
+					local z = (math.cos(self.yaw)) * self.velocity
+					self.object:setvelocity({x=x,y=self.jump_height,z=z})
+					self.jumped = true
+				--stupidly jump
+				elseif self.following == false and self.liquid == 0 and self.leashed == false then
+					--return to save cpu
+					if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
+						--print("velocity failure")
+						return
+					end
+					--use velocity calculation to find whether to jump
+					local x = (math.sin(self.yaw) * -1) * self.velocity
+					local z = (math.cos(self.yaw)) * self.velocity
+					if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
+						self.object:setvelocity({x=x,y=self.jump_height,z=z})
+						self.jumped = true
+					end
+				elseif self.liquid ~= 0 then					
+					--use velocity calculation to find whether to jump
+					local x = (math.sin(self.yaw) * -1) * self.velocity
+					local z = (math.cos(self.yaw)) * self.velocity
+					if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
+						self.object:setvelocity({x=x,y=self.jump_height,z=z})
+						self.jumped = true
+					end
+				end
+			end
+		end
+	end
+	
+end,
+
+--if fish is on land, flop
+flop_on_land = function(self,dtime)
+	self.jump_timer = self.jump_timer + dtime
+	
+	--save resources
+	if self.jump_timer < 0.5 then
+		--print("returning")
+		return
+	end
+	
+	self.jump_timer = 0
+	
+	--if caught then don't execute
+	if self.object:get_attach() then
+		return
+	end
+	
+	local vel = self.object:getvelocity()
+	
+	if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
+		--print("velocity failure")
+		return
+	end
+			
+	self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
+	self.jumped = true
+	
+	self.velocity = 0
+	
+	--play flop sound
+	minetest.sound_play("open_ai_flop", {
+		pos = pos,
+		max_hear_distance = 10,
+		gain = 1.0,
+	})
+
+end,
+]]--
 
 open_ai.register_mob = function(name,def)
 	--add mobs to spawn table - with it's spawn node - and if liquid mob
@@ -100,6 +444,7 @@ open_ai.register_mob = function(name,def)
 		jump_only    = def.jump_only,
 		jumped       = false,
 		scale_size   = 1,
+		drops = def.drops,
 		
 		
 		--Pathfinding variables
@@ -112,285 +457,23 @@ open_ai.register_mob = function(name,def)
 		age = 0,
 		time_existing = 0, --this won't be saved for static data polling
 		
-		--etc variables
-		drops = def.drops,
-		
 		
 		--what mobs do when created
 		on_activate = function(self, staticdata, dtime_s)
-			--print("activating at "..dump(self.object:getpos()))
-			if string.sub(staticdata, 1, string.len("return")) == "return" then
-				local data = minetest.deserialize(staticdata)
-				for key,value in pairs(data) do
-					self[key] = value
-				end
-			end
-			--keep hp
-			if self.old_hp then
-				self.object:set_hp(self.old_hp)
-			end
-			
-			--keep leashes connected when respawning
-			if self.target_name then
-				self.target = minetest.get_player_by_name(self.target_name)
-			end
-			
-			--keep object riding
-			if self.attached_name then
-				self.attached = minetest.get_player_by_name(self.attached_name)
-				self.attached:set_attach(self.object, "", {x=0, y=self.visual_offset, z=0}, {x=0, y=self.automatic_face_movement_dir+90, z=0})
-				if self.attached:is_player() == true then
-					self.attached:set_properties({
-						visual_size = {x=1/self.visual_size.x, y=1/self.visual_size.y},
-					})
-					--set players eye offset for mob
-					self.attached:set_eye_offset({x=0,y=self.eye_offset,z=0},{x=0,y=0,z=0})
-				end
-			end
-			
-			--set the amount of times a player has to feed the mob to tame it
-			if not self.tame_amount and self.tameable == true then
-				self.tame_amount = math.random(self.tame_click_min,self.tame_click_max)
-			end
-			--re apply the mob chair texture
-			if self.has_chair and self.has_chair == true then
-				self.object:set_properties({textures = self.chair_textures})
-			end
-			
-						
-			--re apply collisionbox and visualsize
-			if self.scale_size ~= 1 and self.collisionbox and self.visual_size then
-				self.object:set_properties({collisionbox = self.collisionbox,visual_size = self.visual_size})
-			else
-				--fix the glitch of entity collisionboxes being shared between entities
-				self.object:set_properties({collisionbox = table.copy(open_ai.defaults[self.name]["collisionbox"])})
-				self.collisionbox = table.copy(open_ai.defaults[self.name]["collisionbox"])
-				self.scale_size = 1
-			end
-			
-			if self.user_defined_on_activate then
-				self.user_defined_on_activate(self, staticdata, dtime_s)
-			end
+			open_ai.activation:restore_variables(self,staticdata,dtime_s)
 		end,
 
 		--user defined function
 		user_defined_on_activate = def.on_activate,
 		
-		
-		
-		
-		
-		
 		--when the mob entity is deactivated
 		get_staticdata = function(self)
-			--don't get static data if just spawning
-			--print("age: "..self.time_existing)
-			--if self.time_existing == 0 then
-			--	print("returning")
-			--	return
-			--end
-			--print("staticdata at "..dump(self.object:getpos()))
-			--self.global_mob_counter(self)
-			local serialize_table = {}
-			for key,value in pairs(self) do
-				--don't get object item
-				if key ~= "object" and key ~= "time_existing" then
-					--don't do userdata
-					if type(value) == "userdata" then
-						value = nil
-					end
-					serialize_table[key] = value
-				end
-			end
-			--manually save collisionbox
-			--serialize_table["collisionbox"] = self.collisionbox
-			local value_string = minetest.serialize(serialize_table)
-			return(value_string)
-		end,
-
-		--used to tell if mob entity has despawned
-		global_mob_counter = function(self)
-			--do this to save a lot of resources vs a global table
-			
-			--automatically remove mob if dead
-			if self.object:get_hp() <= 0 then
-				open_ai.mob_count = open_ai.mob_count - 1
-				minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
-			else--use assumption logic for mob counter
-				minetest.after(0,function(self)
-					local pos = self.object:getpos()
-					local exists
-					
-					--for despawned mobs
-					if pos == nil then
-						exists = nil 
-					else
-						exists = table.getn(minetest.get_objects_inside_radius(pos, 0.01))
-					end
-					
-					--print("static data global mob count")
-					if exists == nil then
-						open_ai.mob_count = open_ai.mob_count - 1
-						minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
-					elseif exists > 0 then
-						--limit the max amount of mobs in the world
-						if self.activated == nil then
-							if open_ai.mob_count+1 > open_ai.max_mobs then
-								self.object:remove()
-								minetest.chat_send_all(open_ai.max_mobs.." mob limit reached!")
-							else
-								open_ai.mob_count = open_ai.mob_count + 1
-								minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
-							end
-							--trigger to not readd mobs to global mob counter when already existing
-							self.activated = true	
-						end
-					end
-				end,self)
-			end
-		end,
-		--allow players to make mob jump when riding mobs
-		ridden_jump = function(self,dtime)
-			if self.attached ~= nil then
-			local pos = self.object:getpos()
-			local vel = self.object:getvelocity()
-			if self.attached:is_player() then
-				if self.attached:get_player_control().jump == true then
-					
-					--jump only if standing on node
-					if self.liquid == 0 then
-						--return to save cpu
-						if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
-							--print("velocity failure")
-							return
-						end
-						--use velocity calculation to find whether to jump
-						local x = (math.sin(self.yaw) * -1) * self.velocity
-						local z = (math.cos(self.yaw)) * self.velocity
-						self.object:setvelocity({x=x,y=self.jump_height,z=z})
-						self.jumped = true
-					--always allowed to jump in water
-					elseif self.liquid ~= 0 then
-						--use velocity calculation to find whether to jump
-						local x = (math.sin(self.yaw) * -1) * self.velocity
-						local z = (math.cos(self.yaw)) * self.velocity
-						self.object:setvelocity({x=x,y=self.jump_height,z=z})
-						self.jumped = true
-					end
-				end
-			end
-			end
-		end,
-		--decide wether an entity should jump or change direction
-		jump = function(self,dtime)
-			self.jump_timer = self.jump_timer + dtime
-			if self.jump_timer >= 0.25 then
-				self.jump_timer = 0
-				--only jump on it's own if player is not riding		
-				if self.attached == nil then
-					local vel = self.object:getvelocity()
-					
-					--don't execute if liquid mob
-					if self.liquid_mob == true then
-						--use this calc to find if it should change direction
-						local x = (math.sin(self.yaw) * -1)
-						local z = (math.cos(self.yaw))
-						
-						--reset the timer to change direction
-						if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
-							self.behavior_timer = self.behavior_timer_goal
-						end
-					else
-						--put this here because it's only used by pathfinding jumping
-						local pos = self.object:getpos()
-						
-						--only jump when path step is higher up
-						if self.following == true and self.leashed == false then
-							--only try to jump if pathfinding exists
-							if self.path and table.getn(self.path) > 1 then
-								--don't jump if current position is equal to or higher than goal					
-								if vector.round(pos).y >= self.path[2].y then
-									return
-								end
-							--don't jump if pathfinding doesn't exist
-							else
-								return
-							end
-							
-							--return to save cpu
-							if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
-								--print("velocity failure")
-								return
-							end
-							
-							--return if nan
-							if self.yaw ~= self.yaw then
-								return
-							end
-															
-							--use velocity calculation to find whether to jump
-							local x = (math.sin(self.yaw) * -1) * self.velocity
-							local z = (math.cos(self.yaw)) * self.velocity
-							self.object:setvelocity({x=x,y=self.jump_height,z=z})
-							self.jumped = true
-						--stupidly jump
-						elseif self.following == false and self.liquid == 0 and self.leashed == false then
-							--return to save cpu
-							if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
-								--print("velocity failure")
-								return
-							end
-							--use velocity calculation to find whether to jump
-							local x = (math.sin(self.yaw) * -1) * self.velocity
-							local z = (math.cos(self.yaw)) * self.velocity
-							if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
-								self.object:setvelocity({x=x,y=self.jump_height,z=z})
-								self.jumped = true
-							end
-						elseif self.liquid ~= 0 then					
-							--use velocity calculation to find whether to jump
-							local x = (math.sin(self.yaw) * -1) * self.velocity
-							local z = (math.cos(self.yaw)) * self.velocity
-							if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
-								self.object:setvelocity({x=x,y=self.jump_height,z=z})
-								self.jumped = true
-							end
-						end
-					end
-				end
-			end
-			
-		end,
-		user_defined_on_jump = def.on_jump,
-		--jump only mob movements
-		jumping_movement = function(self,dtime)
-			self.jump_timer = self.jump_timer + dtime
-			--print(self.jump_timer)
-			--only check to jump every half second
-			if self.jump_timer >= 0.5 then
-				
-				local pos = self.object:getpos()
-				local vel = self.object:getvelocity()
-				self.jump_timer = 0
-				
-				--return to save cpu
-				if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
-					--print("velocity failure")
-					return
-				end
-				
-
-				--use velocity calculation to find whether to jump
-				local x = (math.sin(self.yaw) * -1) * self.velocity
-				local z = (math.cos(self.yaw)) * self.velocity
-
-				self.object:setvelocity({x=x,y=self.jump_height,z=z})
-				self.jumped = true
-				
-			end
+			return(open_ai.activation:getstaticdata(self))
 		end,
 		
-		--this runs everything that happens when a mob update timer resets
+		user_defined_on_jump = def.on_jump,
+
+				--this runs everything that happens when a mob update timer resets
 		update = function(self,dtime)
 			self.update_timer = self.update_timer + dtime
 			if self.update_timer >= 0.1 then
@@ -398,7 +481,6 @@ open_ai.register_mob = function(name,def)
 				self.path_find(self)
 			end
 		end,
-		
 		--how a mob thinks
 		behavior = function(self,dtime)
 			self.behavior_timer = self.behavior_timer + dtime
@@ -489,43 +571,7 @@ open_ai.register_mob = function(name,def)
 			
 			
 		end,
-		--if fish is on land, flop
-		flop_on_land = function(self,dtime)
-			self.jump_timer = self.jump_timer + dtime
-			
-			--save resources
-			if self.jump_timer < 0.5 then
-				--print("returning")
-				return
-			end
-			
-			self.jump_timer = 0
-			
-			--if caught then don't execute
-			if self.object:get_attach() then
-				return
-			end
-			
-			local vel = self.object:getvelocity()
-			
-			if vel.y ~= 0 or (self.old_velocity_y and self.old_velocity_y > 0) or (self.old_velocity_y == nil) then
-				--print("velocity failure")
-				return
-			end
-					
-			self.object:setvelocity({x=vel.x,y=self.jump_height,z=vel.z})
-			self.jumped = true
-			
-			self.velocity = 0
-			
-			--play flop sound
-			minetest.sound_play("open_ai_flop", {
-				pos = pos,
-				max_hear_distance = 10,
-				gain = 1.0,
-			})
 
-		end,
 		--a visual of the leash
 		leash_visual = function(self,distance,pos,vec)
 			--multiply times two if too far
@@ -617,14 +663,14 @@ open_ai.register_mob = function(name,def)
 		movement = function(self,dtime)
 			
 			--if jump_only mob then only jump
-			if self.jump_only == true then
-				self.jumping_movement(self,dtime)
+			--if self.jump_only == true then
+			---	self.jumping_movement(self,dtime)
 			--else normal jumping
-			elseif not self.liquid_mob == true then
-				self.jump(self,dtime)
-			end
+			--elseif not self.liquid_mob == true then
+			---	self.jump(self,dtime)
+			--end
 			
-			self.ridden_jump(self,dtime)--allow players to jump while they ride mobs
+			--self.ridden_jump(self,dtime)--allow players to jump while they ride mobs
 			
 			local collide_values = self.collision(self)
 			local c_x = collide_values[1]
@@ -664,29 +710,25 @@ open_ai.register_mob = function(name,def)
 			if self.liquid_mob == true and self.liquid ~= 0 then
 				gravity = self.swim_pitch
 			elseif self.liquid_mob == true and self.liquid == 0 then
-				self.flop_on_land(self,dtime)
+				--self.flop_on_land(self,dtime)
 			end
 			
+
+			open_ai.movement.jump:jumponstep(self,dtime)
 			
-			--execute player defined function
-			if self.jumped == true and self.user_defined_on_jump then
-				self.user_defined_on_jump(self,dtime)
-				self.jumped = false
-			end
-				
 			--stop constant motion if stopped
-			--[[
-			if (math.abs(vel.x) < 0.1 and math.abs(vel.z) < 0.1) and (vel.x ~= 0 and vel.z ~= 0) and self.velocity == 0 then
-				self.object:setvelocity({x=0,y=vel.y,z=0})
+			
+			--if (math.abs(vel.x) < 0.1 and math.abs(vel.z) < 0.1) and (vel.x ~= 0 and vel.z ~= 0) and self.velocity == 0 then
+			--	self.object:setvelocity({x=0,y=vel.y,z=0})
 			--only apply gravity if stopped
-			elseif self.velocity == 0 and (math.abs(vel.x) < 0.1 and math.abs(vel.z) < 0.1) then
-				self.object:setacceleration({x=0,y=-10,z=0})		
+			--elseif self.velocity == 0 and (math.abs(vel.x) < 0.1 and math.abs(vel.z) < 0.1) then
+			--	self.object:setacceleration({x=0,y=-10,z=0})		
 			--stop motion if trying to stop
-			elseif self.velocity == 0 and (math.abs(vel.x) > 0.1 or math.abs(vel.z) > 0.1) then
-				self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})				
+			--elseif self.velocity == 0 and (math.abs(vel.x) > 0.1 or math.abs(vel.z) > 0.1) then
+			---	self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=-10,z=(0 - vel.z + c_z)*self.acceleration})				
 			--do normal things
-			elseif self.velocity ~= 0 then
-			]]--
+			--elseif self.velocity ~= 0 then
+			
 			--land mob
 			if self.liquid_mob == false or self.liquid_mob == nil then
 				--jump only mobs
@@ -1032,7 +1074,7 @@ open_ai.register_mob = function(name,def)
 			
 			--die
 			if self.object:get_hp() <= 0 then
-				self.global_mob_counter(self) --remove from global mob count
+				--self.global_mob_counter(self) --remove from global mob count
 				--return player back to normal scale
 				if self.attached then
 				if self.attached:is_player() == true then
@@ -1281,6 +1323,7 @@ open_ai.register_mob = function(name,def)
 		
 		--what mobs do on each server step
 		on_step = function(self,dtime)
+			--run get variables function
 			self.particles_and_sounds(self)
 			self.change_size(self,dtime)
 			self.check_for_hurt(self,dtime)
