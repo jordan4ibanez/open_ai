@@ -193,6 +193,7 @@ function open_ai.movement:apply_physics(self)
 				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=self.gravity,z=(z - vel.z + c_z)*self.acceleration})				
 			--swim
 			else 
+				print("bug")
 				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(self.gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
 			end
 		end
@@ -385,7 +386,6 @@ function open_ai.movement.pathfinding_jump(self)
 			return
 		end
 		open_ai.movement.jump:jump(self,true,true,false)
-	--stupid jump if moving directly to player
 	else
 		open_ai.movement.jump:jump(self,true,true,true)
 	end
@@ -492,9 +492,9 @@ function open_ai.pathfind:find_path(self)
 		else
 			eye_pos2.y = eye_pos2.y + self.target:get_luaentity().center + self.target:get_luaentity().overhang 
 		end
-		--[[
+		
 		minetest.add_particle({
-				pos = eye_pos,
+				pos = pos1,
 				velocity = {x=0, y=0, z=0},
 				acceleration = {x=0, y=0, z=0},
 				expirationtime = 1,
@@ -503,6 +503,7 @@ function open_ai.pathfind:find_path(self)
 				vertical = false,
 				texture = "default_dirt.png",
 			})
+		--[[
 		minetest.add_particle({
 				pos = eye_pos2,
 				velocity = {x=0, y=0, z=0},
@@ -519,36 +520,31 @@ function open_ai.pathfind:find_path(self)
 		--open voxel manip object
 		
 		local z_vec = vector.multiply(vector.normalize(vector.subtract(pos1, pos2)),-1)
+		
 		local pathfind_bool = false
 		
 		if pos2 then
 		local floorpos = vector.round(pos1)
 		
-		
-		for i = 1,3 do
+		--avoid walking off cliffs
+		for i = 1,2 do
 			local node = minetest.get_node(vector.add({x=z_vec.x,y=-i,z=z_vec.z},floorpos)).name
-			minetest.add_particle({
-				pos = vector.add({x=z_vec.x,y=-i,z=z_vec.z},floorpos),
-				velocity = {x=0, y=0, z=0},
-				acceleration = {x=0, y=0, z=0},
-				expirationtime = 1,
-				size = 4,
-				collisiondetection = false,
-				vertical = false,
-				texture = "default_wood.png",
-			})
-			
 			if minetest.registered_nodes[node].walkable ~= true then
 				pathfind_bool = true
-				print("pathfind break:"..node)
 				break
-			end
-			
+			end			
 		end
+		end
+		
+		--avoid getting caught on wall
+		local vel = self.object:getpos()
+		local x = (math.sin(self.yaw) * -1) 
+		local z = (math.cos(self.yaw))
+		if ((vel.x == 0 and x ~= 0) or (vel.z == 0 and z ~= 0)) then
+			pathfind_bool = true
 		end
 		
 		if line_of_sight == true and pathfind_bool ~= true then
-			print(pathfind_bool)
 			self.path = nil
 			
 			local vec = vector.subtract(pos1, pos2)
@@ -564,17 +560,48 @@ function open_ai.pathfind:find_path(self)
 			if not pos2 then
 				path = self.path
 			else
-				path = minetest.find_path(pos1,pos2,5,1,3,"Dijkstra")
+				--print("error")
+				path = minetest.find_path(pos1,pos2,10,1,2,"Dijkstra")
 			end
 			
 			
 			
-			--if in path step, delete it to not get stuck in place
 			
 			local vec_pos = vector.round(pos1)
 			
+			--local nearest_node(
+			
+			
+			
+			local node_below = minetest.registered_nodes[minetest.get_node({x=vec_pos.x,y=vec_pos.y-1,z=vec_pos.z}).name].walkable
+			
+			--set position to closest node
+			if node_below == false then
+				--if minetest.registered_nodes[minetest.get_node({x=pos1.x,y=pos1.y-2,z=pos1.z}).name].walkable then
+				--	pos1.y = pos1.y - 1
+				--else
+					--find node standing on ,x or z
+					
+				--end
+				--node direction
+				local n_direction = vector.round(vector.direction(vec_pos, pos1))
+				
+				if n_direction.x ~= 0 or n_direction.z ~= 0 then
+					if minetest.registered_nodes[minetest.get_node({x=vec_pos.x+n_direction.x,y=vec_pos.y-1,z=vec_pos.z}).name].walkable == true then
+						pos1.x = pos1.x+n_direction.x
+						--print("moving to z")
+					elseif minetest.registered_nodes[minetest.get_node({x=vec_pos.x,y=vec_pos.y-1,z=vec_pos.z+n_direction.z}).name].walkable == true then
+						pos1.z = pos1.z+n_direction.z
+						--print("moving to x")
+					end
+				end
+				
+				path = minetest.find_path(vector.round(pos1),pos2,10,1,2,"Dijkstra")
+			end
+			
 			--print(vec_pos.x,vec_pos.z, self.path[2].x,self.path[2].z)
 			
+			--if in path step, delete it to not get stuck in place
 			if table.getn(self.path) > 1  then
 				if vec_pos.x == self.path[2].x and vec_pos.z == self.path[2].z then
 					--print("delete first step")
@@ -764,7 +791,7 @@ open_ai.register_mob = function(name,def)
 				--this runs everything that happens when a mob update timer resets
 		update = function(self,dtime)
 			self.update_timer = self.update_timer + dtime
-			if self.update_timer >= 0.1 then
+			if self.update_timer >= 0.2 then
 				self.update_timer = 0
 				open_ai.pathfind:find_path(self)
 			end
