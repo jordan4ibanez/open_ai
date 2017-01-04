@@ -523,6 +523,8 @@ function open_ai.pathfind:find_path(self)
 		
 		local pathfind_bool = false
 		
+		
+		
 		if pos2 then
 		local floorpos = vector.round(pos1)
 		
@@ -541,6 +543,11 @@ function open_ai.pathfind:find_path(self)
 		local x = (math.sin(self.yaw) * -1) 
 		local z = (math.cos(self.yaw))
 		if ((vel.x == 0 and x ~= 0) or (vel.z == 0 and z ~= 0)) then
+			pathfind_bool = true
+		end
+		
+		--pathfind if target is too high
+		if vector.subtract(pos2,pos1).y > 1 then
 			pathfind_bool = true
 		end
 		
@@ -593,6 +600,10 @@ function open_ai.pathfind:find_path(self)
 					elseif minetest.registered_nodes[minetest.get_node({x=vec_pos.x,y=vec_pos.y-1,z=vec_pos.z+n_direction.z}).name].walkable == true then
 						pos1.z = pos1.z+n_direction.z
 						--print("moving to x")
+					--elseif minetest.registered_nodes[minetest.get_node({x=vec_pos.x+n_direction.x,y=vec_pos.y-1,z=vec_pos.z+n_direction.z}).name].walkable == true then
+						--print("move diagnally")
+					--	pos1.z = pos1.z-n_direction.z
+					--	pos1.x = pos1.x-n_direction.x
 					end
 				end
 				
