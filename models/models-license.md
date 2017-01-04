@@ -1,0 +1,3 @@
+equine2.blend, equine2.b3d equine2.xcf and equine2.png are Copyright 2016 by Francisco "FreeLikeGNU" Athens Creative Commons Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0) http://creativecommons.org/licenses/by-sa/3.0/
+sheeptest.blend, sheeptest.b3d sheeptest.xcf and sheeptest.png are Copyright 2016 by Francisco "FreeLikeGNU" Athens Creative Commons Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0) http://creativecommons.org/licenses/by-sa/3.0/
+fishtest.blend, fishtest.b3d fishtest.xcf and fishtest.png are Copyright 2016 by Francisco "FreeLikeGNU" Athens Creative Commons Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0) http://creativecommons.org/licenses/by-sa/3.0/
