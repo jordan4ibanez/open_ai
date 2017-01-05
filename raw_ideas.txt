@@ -1,4 +1,6 @@
 This is a list of raw unstructured ideas I have randomly
+
+MAIN GOAL: how do I program a scenario? What is a scenario? etc
  
  0 is mainly function ideas/notes on how to execute things
  
