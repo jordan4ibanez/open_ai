@@ -159,6 +159,7 @@ ai_library.movement.__index = ai_library.movement
 
 --the main onstep function for movement
 function ai_library.movement:onstep(self,dtime)
+	self.ai_library.movement:ridden(self)
 	self.ai_library.collision:collide(self,dtime)
 	self.ai_library.movement:apply_physics(self)
 	self.ai_library.movement.jump:onstep(self,dtime)
@@ -198,7 +199,6 @@ function ai_library.movement:apply_physics(self)
 				self.object:setacceleration({x=(x - vel.x + self.c_x)*self.acceleration,y=self.gravity,z=(z - vel.z + self.c_z)*self.acceleration})				
 			--swim
 			else 
-				print("bug")
 				self.object:setacceleration({x=(x - vel.x + self.c_x)*self.acceleration,y=(self.gravity-vel.y)*self.acceleration,z=(z - vel.z + self.c_z)*self.acceleration})
 			end
 		end
@@ -234,6 +234,26 @@ function ai_library.movement:liquidgravity(self)
 	--make mobs swim in water, fall back into it, if jumped out
 	if self.liquid_mob == true and self.liquid ~= 0 then
 		self.gravity = self.swim_pitch
+	end
+end
+
+--how mobs move around when a player is riding it
+function ai_library.movement:ridden(self)
+	--only allow owners to ride
+	if self.tamed == true and self.attached ~= nil and self.attached:get_player_name() == self.owner_name then
+		if self.attached:is_player() then
+			self.yaw = self.attached:get_look_horizontal()
+			if self.attached:get_player_control().up == true then
+				if self.has_chair and self.has_chair == true then
+					self.velocity = self.max_velocity * 1.5 --double the speed if wearing a chair
+				else
+					self.velocity = self.max_velocity
+				end
+				
+			else
+				self.velocity = 0
+			end
+		end
 	end
 end
 
@@ -751,13 +771,125 @@ ai_library.interaction.__index = ai_library.interaction
 
 --what happens when you hit a mob
 function ai_library.interaction:on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
-	
 	if self.user_defined_on_punch then
 		self.user_defined_on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
 	end
-	
 	self.ai_library.interaction:knockback(self,puncher,dir)
 	self.ai_library.interaction:on_die(self,puncher,dir)
+end
+
+--what happens when you right click a mob
+function ai_library.interaction:on_rightclick(self, clicker)
+	
+	self.ai_library.interaction:ride_attempt(self,clicker)
+	
+	self.ai_library.interaction:place_chair(self,clicker) -- this after try to ride so player puts on chair before riding
+	
+	self.ai_library.interaction:taming(self,clicker)
+	
+	--undo leash
+	if self.leashed == true then
+		self.leashed = false
+		self.target = nil
+		self.target_name = nil
+		return
+	end
+
+	if self.user_defined_on_rightclick then
+		self.user_defined_on_rightclick(self, clicker)
+	end
+end
+
+--how a player puts a "chair" on a mob
+function ai_library.interaction:place_chair(self,clicker)
+	if self.tameable == false or self.tamed == false or self.rideable == false or self.mob_chair == nil or self.has_chair == true then
+		return
+	end
+	local item = clicker:get_wielded_item()
+	
+	if item:to_string() ~= "" and item:to_table().name == self.mob_chair then
+		item:take_item(1)
+		clicker:set_wielded_item(item)
+		self.has_chair = true
+		self.object:set_properties({textures = self.chair_textures})
+	end			
+end
+
+--what happens when a player tries to ride the mob
+function ai_library.interaction:ride_attempt(self,clicker)
+	local item = clicker:get_wielded_item()
+	--don't ride if putting on mob chair
+	if self.has_chair and self.has_chair == false or (item:to_string() ~= "" and item:to_table().name == self.mob_chair) then
+		return
+	end
+	--initialize riding the horse
+	if self.rideable == true and self.tamed == true and clicker:get_player_name() == self.owner_name then
+		if self.attached == nil and self.leashed == false then
+			self.attached = clicker
+			self.attached_name = clicker:get_player_name()
+			self.attached:set_attach(self.object, "", {x=0, y=self.visual_offset, z=0}, {x=0, y=self.automatic_face_movement_dir+90, z=0})
+			--sit animation
+			if self.attached:is_player() == true then
+				self.attached:set_properties({
+					visual_size = {x=1/self.visual_size.x, y=1/self.visual_size.y},
+				})
+				--set players eye offset for mob
+				self.attached:set_eye_offset({x=0,y=self.eye_offset,z=0},{x=0,y=0,z=0})
+			end
+		elseif self.attached ~= nil then
+			--normal animation
+			if self.attached:is_player() == true then
+				self.attached:set_properties({
+					visual_size = {x=1, y=1},
+				})
+				--revert back to normal
+				self.attached:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
+			end
+			self.attached:set_detach()
+			self.attached_name = nil
+			self.attached = nil
+		end
+		
+	end
+end
+function ai_library.interaction:taming(self,clicker)
+	--disalow mobs that can't be tamed or mobs that are already tamed
+	if not self.tameable or (self.tameable == false or self.tamed == true) then 
+		return
+	end
+
+	local item = clicker:get_wielded_item()
+	
+	if item:to_string() ~= "" and item:to_table().name == self.tame_item then
+		item:take_item(1)
+		clicker:set_wielded_item(item)
+		self.tame_amount = self.tame_amount - 1
+	end
+	if self.tame_amount <= 0 then
+		self.tamed = true
+		self.owner = clicker
+		self.owner_name = clicker:get_player_name()
+		
+		local pos = self.object:getpos()
+		--add to particles class
+		minetest.add_particlespawner({
+			amount = 50,
+			time = 0.001,
+			minpos = pos,
+			maxpos = pos,
+			minvel = {x=-6, y=3, z=-6},
+			maxvel = {x=6, y=8, z=6},
+			minacc = {x=0, y=-10, z=0},
+			maxacc = {x=0, y=-10, z=0},
+			minexptime = 1,
+			maxexptime = 2,
+			minsize = 1,
+			maxsize = 2,
+			collisiondetection = false,
+			vertical = false,
+			texture = "heart.png",
+		})
+	end
 end
 
 --mob knockback
@@ -909,7 +1041,7 @@ open_ai.register_mob = function(name,def)
 		time_existing = 0, --this won't be saved for static data polling
 		
 		--Inject the library into entity def
-		ai_library = ai_library,
+		ai_library = table.copy(ai_library),
 		
 		--what mobs do when created
 		on_activate = function(self, staticdata, dtime_s)
@@ -1007,31 +1139,9 @@ open_ai.register_mob = function(name,def)
 				self.in_cart = true
 			end
 		end,
-		
-		--how mobs move around when a player is riding it
-		ridden = function(self)
-			--only allow owners to ride
-			if self.tamed == true and self.attached ~= nil and self.attached:get_player_name() == self.owner_name then
-				if self.attached:is_player() then
-					self.yaw = self.attached:get_look_horizontal()
-					if self.attached:get_player_control().up == true then
-						if self.has_chair and self.has_chair == true then
-							self.velocity = self.max_velocity * 1.5 --double the speed if wearing a chair
-						else
-							self.velocity = self.max_velocity
-						end
-						
-					else
-						self.velocity = 0
-					end
-				end
-			end
-		end,
-		
+				
 		-- how a mob moves around the world
-		movement = function(self,dtime)
-			--put into interaction class
-			self.ridden(self)			
+		movement = function(self,dtime)			
 			self.ai_library.movement:onstep(self,dtime)
 		end,
 		
@@ -1196,127 +1306,18 @@ open_ai.register_mob = function(name,def)
 			self.ai_library.interaction:on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
 		end,
 		
+		on_rightclick = function(self, clicker) 
+			self.ai_library.interaction:on_rightclick(self, clicker)
+		end,
+		
+		
+		
 		
 		--user defined
 		user_defined_on_punch = def.on_punch,
-		user_defined_on_die   = def.on_die,
-		
-		--what happens when a player tries to ride the mob
-		try_to_ride = function(self,clicker)
-			local item = clicker:get_wielded_item()
-			--don't ride if putting on mob chair
-			if self.has_chair and self.has_chair == false or (item:to_string() ~= "" and item:to_table().name == self.mob_chair) then
-				return
-			end
-			--initialize riding the horse
-			if self.rideable == true and self.tamed == true and clicker:get_player_name() == self.owner_name then
-				if self.attached == nil and self.leashed == false then
-					self.attached = clicker
-					self.attached_name = clicker:get_player_name()
-					self.attached:set_attach(self.object, "", {x=0, y=self.visual_offset, z=0}, {x=0, y=self.automatic_face_movement_dir+90, z=0})
-					--sit animation
-					if self.attached:is_player() == true then
-						self.attached:set_properties({
-							visual_size = {x=1/self.visual_size.x, y=1/self.visual_size.y},
-						})
-						--set players eye offset for mob
-						self.attached:set_eye_offset({x=0,y=self.eye_offset,z=0},{x=0,y=0,z=0})
-					end
-				elseif self.attached ~= nil then
-					--normal animation
-					if self.attached:is_player() == true then
-						self.attached:set_properties({
-							visual_size = {x=1, y=1},
-						})
-						--revert back to normal
-						self.attached:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
-					end
-					self.attached:set_detach()
-					self.attached_name = nil
-					self.attached = nil
-				end
-				
-			end
-		end,
-		taming = function(self,clicker)
-			--disalow mobs that can't be tamed or mobs that are already tamed
-			if not self.tameable or (self.tameable == false or self.tamed == true) then 
-				return
-			end
-
-			local item = clicker:get_wielded_item()
-			
-			if item:to_string() ~= "" and item:to_table().name == self.tame_item then
-				item:take_item(1)
-				clicker:set_wielded_item(item)
-				self.tame_amount = self.tame_amount - 1
-			end
-			if self.tame_amount <= 0 then
-				self.tamed = true
-				self.owner = clicker
-				self.owner_name = clicker:get_player_name()
-				
-				local pos = self.object:getpos()
-				minetest.add_particlespawner({
-					amount = 50,
-					time = 0.001,
-					minpos = pos,
-					maxpos = pos,
-					minvel = {x=-6, y=3, z=-6},
-					maxvel = {x=6, y=8, z=6},
-					minacc = {x=0, y=-10, z=0},
-					maxacc = {x=0, y=-10, z=0},
-					minexptime = 1,
-					maxexptime = 2,
-					minsize = 1,
-					maxsize = 2,
-					collisiondetection = false,
-					vertical = false,
-					texture = "heart.png",
-				})
-			end
-		end,
-		
-		
-		
-		--how a player puts a "chair" on a mob
-		place_chair = function(self,clicker)
-			if self.tameable == false or self.tamed == false or self.rideable == false or self.mob_chair == nil or self.has_chair == true then
-				return
-			end
-			local item = clicker:get_wielded_item()
-			
-			if item:to_string() ~= "" and item:to_table().name == self.mob_chair then
-				item:take_item(1)
-				clicker:set_wielded_item(item)
-				self.has_chair = true
-				self.object:set_properties({textures = self.chair_textures})
-			end			
-		end,
-		
-		--what happens when you right click a mob
-		on_rightclick = function(self, clicker)
-			
-			self.try_to_ride(self,clicker)
-			
-			self.place_chair(self,clicker) -- this after try to ride so player puts on chair before riding
-			
-			self.taming(self,clicker)
-			
-			--undo leash
-			if self.leashed == true then
-				self.leashed = false
-				self.target = nil
-				self.target_name = nil
-				return
-			end
-
-			if self.user_defined_on_rightclick then
-				self.user_defined_on_rightclick(self, clicker)
-			end
-		end,
-		--user defined
+		user_defined_on_die   = def.on_die,		
 		user_defined_on_rightclick = def.on_rightclick,
+		
 
 
 		--How a mob changes it's size
