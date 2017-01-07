@@ -36,6 +36,9 @@ class to get new variables, store old variables until next step, for jumping and
 
 try to make mobs emit light
 
+
+got through user defined variables if nil then default to something
+
 ]]--
 
 
@@ -51,13 +54,16 @@ if (x~= 0 and vel.x == 0) or (z~= 0 and vel.z == 0) then
 end,
 ]]--
 
+--The table that holds classes
+ai_library = {}
+
 --------------------------------------------------------------------------------------------------------
 --the activation class
-open_ai.activation = {}
-open_ai.activation.__index = open_ai.activation
+ai_library.activation = {}
+ai_library.activation.__index = ai_library.activation
 
 --this function restored staticdata variables
-function open_ai.activation:restore_variables(self,staticdata,dtime_s)
+function ai_library.activation:restore_variables(self,staticdata,dtime_s)
 	--print("activating at "..dump(self.object:getpos()))
 	if string.sub(staticdata, 1, string.len("return")) == "return" then
 		local data = minetest.deserialize(staticdata)
@@ -65,13 +71,13 @@ function open_ai.activation:restore_variables(self,staticdata,dtime_s)
 			self[key] = value
 		end
 	end
-	open_ai.activation:restore_function(self)
+	self.ai_library.activation:restore_function(self)
 	self.user_defined_on_activate(self,staticdata,dtime_s)
 end
 
 --this keeps the mob consistant
 --restores variables and state
-function open_ai.activation:restore_function(self)
+function ai_library.activation:restore_function(self)
 	--keep hp
 	if self.old_hp then
 		self.object:set_hp(self.old_hp)
@@ -120,7 +126,7 @@ function open_ai.activation:restore_function(self)
 	end
 	print("Remember to add to global id table")
 end
-function open_ai.activation:getstaticdata(self)
+function ai_library.activation:getstaticdata(self)
 	--don't get static data if just spawning
 	--if self.time_existing == 0 then
 	--	print("not storing data \n\n\n\n\n\n\n")
@@ -143,8 +149,8 @@ end
 ------------------------------------------------------------------------------------------------------------# end of activation class
 
 --the movement class
-open_ai.movement = {}
-open_ai.movement.__index = open_ai.movement
+ai_library.movement = {}
+ai_library.movement.__index = ai_library.movement
 
 
 --allow players to make mob jump when riding mobs,
@@ -152,25 +158,24 @@ open_ai.movement.__index = open_ai.movement
 --moves bool - x and z for flopping and standing still
 
 --the main onstep function for movement
-function open_ai.movement:onstep(self,dtime)
-	open_ai.movement:apply_physics(self)
-	open_ai.movement.jump:onstep(self,dtime)
+function ai_library.movement:onstep(self,dtime)
+	self.ai_library.collision:collide(self,dtime)
+	self.ai_library.movement:apply_physics(self)
+	self.ai_library.movement.jump:onstep(self,dtime)
 end
 
 --how a mob physically moves
-function open_ai.movement:apply_physics(self)
-	open_ai.movement:setwatervelocity(self)
+function ai_library.movement:apply_physics(self)
+	self.ai_library.movement:setwatervelocity(self)
 	local vel = self.object:getvelocity()
-	local c_x = 0 ---
-	local c_z = 0 --- call from collision class
 	local x   = math.sin(self.yaw) * -self.velocity
 	local z   = math.cos(self.yaw) * self.velocity	
 	
 	self.gravity = -10
 	
-	open_ai.movement:liquidgravity(self)
+	self.ai_library.movement:liquidgravity(self)
 	
-	open_ai.movement:leashpull(self)
+	self.ai_library.movement:leashpull(self)
 	
 	--land mob
 	if self.liquid_mob ~= true then
@@ -178,47 +183,47 @@ function open_ai.movement:apply_physics(self)
 		if self.jump_only == true then
 			--fall and stop because jump_only mobs only jump around to move
 			if self.gravity == -10 and vel.y == 0 then 
-				self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=self.gravity,z=(0 - vel.z + c_z)*self.acceleration})				
+				self.object:setacceleration({x=(0 - vel.x + self.c_x)*self.acceleration,y=self.gravity,z=(0 - vel.z + self.c_z)*self.acceleration})				
 			--move around normally if jumping
 			elseif self.gravity == -10 and vel.y ~= 0 then
-				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=self.gravity,z=(z - vel.z + c_z)*self.acceleration})
+				self.object:setacceleration({x=(x - vel.x + self.c_x)*self.acceleration,y=self.gravity,z=(z - vel.z + self.c_z)*self.acceleration})
 			--allow jump only mobs to swim
 			else 
-				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(self.gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
+				self.object:setacceleration({x=(x - vel.x + self.c_x)*self.acceleration,y=(self.gravity-vel.y)*self.acceleration,z=(z - vel.z + self.c_z)*self.acceleration})
 			end				
 		--normal walking mobs
 		else
 			--fall
 			if self.gravity == -10 then
-				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=self.gravity,z=(z - vel.z + c_z)*self.acceleration})				
+				self.object:setacceleration({x=(x - vel.x + self.c_x)*self.acceleration,y=self.gravity,z=(z - vel.z + self.c_z)*self.acceleration})				
 			--swim
 			else 
 				print("bug")
-				self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(self.gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
+				self.object:setacceleration({x=(x - vel.x + self.c_x)*self.acceleration,y=(self.gravity-vel.y)*self.acceleration,z=(z - vel.z + self.c_z)*self.acceleration})
 			end
 		end
 	--liquid mob
 	elseif self.liquid_mob == true then
 		--out of water
 		if self.gravity == -10 and self.liquid == 0 then 
-			self.object:setacceleration({x=(0 - vel.x + c_x)*self.acceleration,y=self.gravity,z=(0 - vel.z + c_z)*self.acceleration})
+			self.object:setacceleration({x=(0 - vel.x + self.c_x)*self.acceleration,y=self.gravity,z=(0 - vel.z + self.c_z)*self.acceleration})
 		--swimming
 		else 
-			self.object:setacceleration({x=(x - vel.x + c_x)*self.acceleration,y=(self.gravity-vel.y)*self.acceleration,z=(z - vel.z + c_z)*self.acceleration})
+			self.object:setacceleration({x=(x - vel.x + self.c_x)*self.acceleration,y=(self.gravity-vel.y)*self.acceleration,z=(z - vel.z + self.c_z)*self.acceleration})
 		end
 	end	
 	
 end
 
 --make land mobs slow down in water
-function open_ai.movement:setwatervelocity(self)
+function ai_library.movement:setwatervelocity(self)
 	if self.liquid ~= 0 and self.liquid ~= nil and self.liquid_mob ~= true then
 		self.velocity = self.liquid
 	end
 end
 
 --make mobs sink or swim
-function open_ai.movement:liquidgravity(self)
+function ai_library.movement:liquidgravity(self)
 	--mobs that float float
 	if self.float == true and self.liquid ~= 0 and self.liquid ~= nil then
 		self.gravity = self.liquid
@@ -233,7 +238,7 @@ function open_ai.movement:liquidgravity(self)
 end
 
 --how the leash applies vertical force to the mob
-function open_ai.movement:leashpull(self,x,z)
+function ai_library.movement:leashpull(self,x,z)
 	--don't execute function
 	if self.leashed ~= true then
 		return
@@ -329,22 +334,22 @@ end
 --#################################################################
 
 --the jump subclass
-open_ai.movement.jump = {}
-open_ai.movement.jump.__index = open_ai.movement.jump
+ai_library.movement.jump = {}
+ai_library.movement.jump.__index = ai_library.movement.jump
 
 --the main onstep function for jumping
-function open_ai.movement.jump:onstep(self,dtime)
-	open_ai.movement.jump:jumpcounter(self,dtime)
-	open_ai.movement.jump:jumplogic(self)
+function ai_library.movement.jump:onstep(self,dtime)
+	self.ai_library.movement.jump:jumpcounter(self,dtime)
+	self.ai_library.movement.jump:jumplogic(self)
 end
 
 --this adds the jump timer
-function open_ai.movement.jump:jumpcounter(self,dtime)
+function ai_library.movement.jump:jumpcounter(self,dtime)
 	self.jump_timer = self.jump_timer + dtime
 end
 
 --the function to set velocity
-function open_ai.movement.jump:jump(self,velcheck,move,checkifstopped)
+function ai_library.movement.jump:jump(self,velcheck,move,checkifstopped)
 	local vel = self.object:getvelocity() --use self.vel
 	--check if standing on node or within jump timer
 	if self.jump_timer < 0.5 or (velcheck == true and (vel.y ~= 0 or (self.old_vel and self.old_vel.y > 0) or (self.old_vel == nil))) then
@@ -375,7 +380,7 @@ function open_ai.movement.jump:jump(self,velcheck,move,checkifstopped)
 end
 
 --jumping while pathfinding
-function open_ai.movement.pathfinding_jump(self)
+function ai_library.movement.pathfinding_jump(self)
 	local pos = self.object:getpos()
 	pos.y = pos.y + self.center
 	
@@ -385,15 +390,15 @@ function open_ai.movement.pathfinding_jump(self)
 		if vector.round(pos).y >= self.path[2].y then
 			return
 		end
-		open_ai.movement.jump:jump(self,true,true,false)
+		self.ai_library.movement.jump:jump(self,true,true,false)
 	else
-		open_ai.movement.jump:jump(self,true,true,true)
+		self.ai_library.movement.jump:jump(self,true,true,true)
 	end
 	
 end
 
 --the logic the mobs use to jump
-function open_ai.movement.jump:jumplogic(self)
+function ai_library.movement.jump:jumplogic(self)
 	--if not liquid mob
 	if self.liquid_mob ~= true then
 		--if not jump only then execute normal jumping
@@ -403,13 +408,13 @@ function open_ai.movement.jump:jumplogic(self)
 				--land mob jumping states
 				--pathfinding jump
 				if self.following == true and self.leashed == false then
-					open_ai.movement.pathfinding_jump(self)
+					self.ai_library.movement.pathfinding_jump(self)
 				--stupidly jump on land
 				elseif self.following == false and self.liquid == 0 and self.leashed == false then
-					open_ai.movement.jump:jump(self,true,true,true)
+					self.ai_library.movement.jump:jump(self,true,true,true)
 				--stupidly jump in water
 				elseif self.liquid ~= 0 then					
-					open_ai.movement.jump:jump(self,false,true,true)
+					self.ai_library.movement.jump:jump(self,false,true,true)
 				end
 			--jumping when riding
 			elseif self.attached ~= nil then
@@ -417,17 +422,17 @@ function open_ai.movement.jump:jumplogic(self)
 					if self.attached:get_player_control().jump == true then
 						--jump only if standing on node
 						if self.liquid == 0 then
-							open_ai.movement.jump:jump(self,true,true,false)
+							self.ai_library.movement.jump:jump(self,true,true,false)
 						--always allowed to jump in water
 						elseif self.liquid ~= 0 then
-							open_ai.movement.jump:jump(self,false,true,true)
+							self.ai_library.movement.jump:jump(self,false,true,true)
 						end
 					end
 				end
 			end
 		--jump only mob
 		else
-			open_ai.movement.jump:jump(self,true,true,false)
+			self.ai_library.movement.jump:jump(self,true,true,false)
 		end
 	--liquid mob 
 	elseif self.liquid == 0 then
@@ -436,7 +441,7 @@ function open_ai.movement.jump:jumplogic(self)
 			return
 		end
 		--self.velocity = 0
-		open_ai.movement.jump:jump(self,true,false,false)
+		self.ai_library.movement.jump:jump(self,true,false,false)
 		--play flop sound
 		--minetest.sound_play("open_ai_flop", {
 		--	pos = pos,
@@ -447,18 +452,31 @@ function open_ai.movement.jump:jumplogic(self)
 end
 -----------------------------------------------------------------------------------------------------------#### end of movement class
 --the variables class
-open_ai.variables = {}
-open_ai.variables.__index = open_ai.variables
+ai_library.variables = {}
+ai_library.variables.__index = ai_library.variables
+
+--update variables
+function ai_library.variables:on_step(self,dtime)
+	--remember total age and time existing since spawned
+	self.age = self.age + dtime
+	self.time_existing = self.time_existing + dtime
+end
+
 
 --gets current variables
-function open_ai.variables:get_current_variables(self)
+function ai_library.variables:get_current_variables(self)
+	--save these variables on each step
 	self.mpos = self.object:getpos()
 	self.liquid = minetest.registered_nodes[minetest.get_node(self.mpos).name].liquid_viscosity
 	self.vel = self.object:getvelocity()
+	
+	--reset these variables on each step
+	self.c_x = 0
+	self.c_z = 0
 end
 
 --stores old variables
-function open_ai.variables:get_old_variables(self)
+function ai_library.variables:get_old_variables(self)
 	self.old_vel = table.copy(self.vel)
 	self.old_mpos = table.copy(self.mpos)
 	self.old_liquid = self.liquid
@@ -466,10 +484,10 @@ end
 
 ---------------------------------------------------------------------------------------------------------##### end of variables class
 --the pathfind class
-open_ai.pathfind = {}
-open_ai.pathfind.__index = open_ai.pathfind
+ai_library.pathfind = {}
+ai_library.pathfind.__index = ai_library.pathfind
 --path finding towards goal - can be used to find food or water, or attack players or other mobs
-function open_ai.pathfind:find_path(self)
+function ai_library.pathfind:find_path(self)
 	if self.following == true then
 		self.velocity = self.max_velocity
 	
@@ -682,8 +700,95 @@ function open_ai.pathfind:find_path(self)
 		end
 	end
 end
+-----------------------------------------------------------------------------------------------------------###end of pathfinding class
+ai_library.collision = {}
+ai_library.collision.__index = ai_library.collision
 
------------------------------------------------------------------------------------------------------------
+ai_library.collision.objects_in_radius = minetest.get_objects_inside_radius
+
+--how the mob collides with other mobs and players
+function ai_library.collision:collide(self,dtime)
+	local pos = self.object:getpos()
+	pos.y = pos.y + self.height -- check bottom of mob
+	
+	for _,object in ipairs(self.ai_library.collision.objects_in_radius(pos, 1)) do
+		--only collide with other mobs and players
+					
+		--add exception if a nil entity exists around it
+		if object:is_player() or (object:get_luaentity() and object:get_luaentity().mob == true and object ~= self.object) then
+			local pos2 = object:getpos()
+			local vec  = {x=pos.x-pos2.x, z=pos.z-pos2.z}
+			--push away harder the closer the collision is, could be used for mob cannons
+			--+0.5 to add player's collisionbox, could be modified to get other mobs widths
+			local force = (1) - vector.distance({x=pos.x,y=0,z=pos.z}, {x=pos2.x,y=0,z=pos2.z})--don't use y to get verticle distance
+								
+			--modify existing value to magnetize away from mulitiple entities/players
+			self.c_x = self.c_x + (vec.x * force) * 20
+			self.c_z = self.c_z + (vec.z * force) * 20
+			
+		else
+			self.ai_library.collision:ride_object(self,object)
+		end
+	end
+end
+
+
+--how a mob rides an object
+function ai_library.collision:ride_object(self,object)
+	if not object:is_player() and 
+	self.rides_cart == true and 
+	(object:get_luaentity() and 
+	object ~= self.object and 
+	object:get_luaentity().old_dir and 
+	object:get_luaentity().driver == nil) then
+		self.ride_in_cart(self,object)
+	end
+end
+
+---------------------------------------------------------------------------------------------------------####end of collision class
+ai_library.interaction = {}
+ai_library.interaction.__index = ai_library.interaction
+
+--what happens when you hit a mob
+function ai_library.interaction:on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
+	
+	if self.user_defined_on_punch then
+		self.user_defined_on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
+	end
+	
+	self.ai_library.interaction:knockback(self,puncher,dir)
+
+	--die
+	if self.object:get_hp() <= 0 then
+		--self.global_mob_counter(self) --remove from global mob count
+		--return player back to normal scale
+		if self.attached then
+		if self.attached:is_player() == true then
+			self.attached:set_properties({
+				visual_size = {x=1, y=1},
+			})
+			--revert back to normal
+			self.attached:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
+		end
+		end
+		local pos = self.object:getpos()
+		minetest.add_item(pos,self.drops)
+		
+		if self.user_defined_on_die then
+			self.user_defined_on_die(self, puncher, time_from_last_punch, tool_capabilities, dir)
+		end
+	end
+end
+
+function ai_library.interaction:knockback(self,puncher,dir)
+	if puncher:is_player() then		
+		local dirr = vector.multiply(dir,self.max_velocity)
+		self.object:setvelocity({x=dirr.x,y=self.jump_height,z=dirr.z})
+	end
+end
+
+
+-------------------------------------------------------------------------------------------------------#####end of interaction class
 open_ai.register_mob = function(name,def)
 	--add mobs to spawn table - with it's spawn node - and if liquid mob
 	open_ai.spawn_table[name] = {}
@@ -783,10 +888,12 @@ open_ai.register_mob = function(name,def)
 		age = 0,
 		time_existing = 0, --this won't be saved for static data polling
 		
+		--Inject the library into entity def
+		ai_library = ai_library,
 		
 		--what mobs do when created
 		on_activate = function(self, staticdata, dtime_s)
-			open_ai.activation:restore_variables(self,staticdata,dtime_s)
+			self.ai_library.activation:restore_variables(self,staticdata,dtime_s)
 		end,
 
 		--user defined function
@@ -794,7 +901,7 @@ open_ai.register_mob = function(name,def)
 		
 		--when the mob entity is deactivated
 		get_staticdata = function(self)
-			return(open_ai.activation:getstaticdata(self))
+			return(self.ai_library.activation:getstaticdata(self))
 		end,
 		
 		user_defined_on_jump = def.on_jump,
@@ -804,7 +911,7 @@ open_ai.register_mob = function(name,def)
 			self.update_timer = self.update_timer + dtime
 			if self.update_timer >= 0.2 then
 				self.update_timer = 0
-				open_ai.pathfind:find_path(self)
+				self.ai_library.pathfind:find_path(self)
 			end
 		end,
 		--how a mob thinks
@@ -865,35 +972,6 @@ open_ai.register_mob = function(name,def)
 		
 		end,
 		
-		--how the mob collides with other mobs and players
-		collision = function(self)
-			local pos = self.object:getpos()
-			pos.y = pos.y + self.height -- check bottom of mob
-			
-			local vel = self.object:getvelocity()
-			local x   = 0
-			local z   = 0
-			for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 1)) do
-				--only collide with other mobs and players
-							
-				--add exception if a nil entity exists around it
-				if object:is_player() or (object:get_luaentity() and object:get_luaentity().mob == true and object ~= self.object) then
-					local pos2 = object:getpos()
-					local vec  = {x=pos.x-pos2.x, z=pos.z-pos2.z}
-					--push away harder the closer the collision is, could be used for mob cannons
-					--+0.5 to add player's collisionbox, could be modified to get other mobs widths
-					local force = (1) - vector.distance({x=pos.x,y=0,z=pos.z}, {x=pos2.x,y=0,z=pos2.z})--don't use y to get verticle distance
-										
-					--modify existing value to magnetize away from mulitiple entities/players
-					x = x + (vec.x * force) * 20
-					z = z + (vec.z * force) * 20
-				--ride in a minecart
-				elseif not object:is_player() and self.rides_cart == true and (object:get_luaentity() and object ~= self.object and object:get_luaentity().old_dir and object:get_luaentity().driver == nil) then
-					self.ride_in_cart(self,object)
-				end
-			end
-			return({x,z})
-		end,
 		--logic for riding in cart
 		ride_in_cart = function(self,object)
 			
@@ -909,6 +987,7 @@ open_ai.register_mob = function(name,def)
 				self.in_cart = true
 			end
 		end,
+		
 		--how mobs move around when a player is riding it
 		ridden = function(self)
 			--only allow owners to ride
@@ -928,18 +1007,12 @@ open_ai.register_mob = function(name,def)
 				end
 			end
 		end,
+		
 		-- how a mob moves around the world
 		movement = function(self,dtime)
 			--put into interaction class
-			self.ridden(self)
-			
-			
-			--put in collision class
-			local collide_values = self.collision(self)
-			local c_x = collide_values[1]
-			local c_z = collide_values[2]
-			
-			open_ai.movement:onstep(self,dtime)
+			self.ridden(self)			
+			self.ai_library.movement:onstep(self,dtime)
 		end,
 		
 
@@ -976,7 +1049,7 @@ open_ai.register_mob = function(name,def)
 						self.swim_pitch = vec.y
 					end
 				end
-			else 
+			else
 				--pathfind to player
 				local pos = self.object:getpos()
 				for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 30)) do
@@ -1029,8 +1102,6 @@ open_ai.register_mob = function(name,def)
 				end
 			end
 			end
-			
-			
 			--this is created here because it is unnecasary to define it in initial properties
 			--self.old_vel = vel
 		end,
@@ -1100,60 +1171,12 @@ open_ai.register_mob = function(name,def)
 			end
 		end,
 		
-
-		
-		--what happens when you hit a mob
+		--what happens when a mob is punched
 		on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
-			
-			if self.user_defined_on_punch then
-				self.user_defined_on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
-			end
-			
-			--knock back the mob on punch
-			local vel = self.object:getvelocity()
-			if puncher:is_player() and ( vel.y == 0 and (self.old_vel and self.old_vel.y <= 0)) then
-				--print("knockback")
-				local pos = self.object:getpos()
-				local pos2 = puncher:getpos()
-				
-				local vec = {x=pos.x-pos2.x, z=pos.z-pos2.z}
-				--how strong a leash is pulling up a mob
-				
-				--only do local yaw in this function punching a mob back and it doesn't need to change yaw
-				local yaw = math.atan(vec.z/vec.x)+ math.pi / 2
-				
-				if pos2.x > pos.x then
-					yaw = yaw+math.pi
-				end
-				--use velocity calculation to find whether to jump
-				local x = (math.sin(yaw)) * self.max_velocity
-				local z = (math.cos(yaw)*-1) * self.max_velocity
-				
-				self.object:setvelocity({x=x,y=self.jump_height,z=z})
-				self.jumped = true
-			end
-			
-			--die
-			if self.object:get_hp() <= 0 then
-				--self.global_mob_counter(self) --remove from global mob count
-				--return player back to normal scale
-				if self.attached then
-				if self.attached:is_player() == true then
-					self.attached:set_properties({
-						visual_size = {x=1, y=1},
-					})
-					--revert back to normal
-					self.attached:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
-				end
-				end
-				local pos = self.object:getpos()
-				minetest.add_item(pos,self.drops)
-				
-				if self.user_defined_on_die then
-					self.user_defined_on_die(self, puncher, time_from_last_punch, tool_capabilities, dir)
-				end
-			end
+			self.ai_library.interaction:on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
 		end,
+		
+		
 		--user defined
 		user_defined_on_punch = def.on_punch,
 		user_defined_on_die   = def.on_die,
@@ -1325,12 +1348,6 @@ open_ai.register_mob = function(name,def)
 			self.object:set_properties({collisionbox = self.collisionbox,visual_size=self.visual_size})
 			
 		end,
-	
-		--remember total age and time existing since spawned
-		find_age = function(self,dtime)
-			self.age = self.age + dtime
-			self.time_existing = self.time_existing + dtime
-		end,
 
 		--do particles
 		particles_and_sounds = function(self)
@@ -1374,7 +1391,8 @@ open_ai.register_mob = function(name,def)
 		
 		--what mobs do on each server step
 		on_step = function(self,dtime)
-			open_ai.variables:get_current_variables(self)
+			self.ai_library.variables:get_current_variables(self)
+			
 			self.particles_and_sounds(self)
 			self.change_size(self,dtime)
 			self.check_for_hurt(self,dtime)
@@ -1384,11 +1402,13 @@ open_ai.register_mob = function(name,def)
 			self.set_animation(self,dtime)
 			self.movement(self,dtime)
 			--self.velocity_damage(self,dtime)
-			self.find_age(self,dtime)			
+			--self.find_age(self,dtime)
+			
+			self.ai_library.variables:on_step(self,dtime)--update variables, time for now
 			if self.user_defined_on_step then
 				self.user_defined_on_step(self,dtime)
 			end
-			open_ai.variables:get_old_variables(self)
+			self.ai_library.variables:get_old_variables(self)
 		end,
 		
 		--a function that users can define
