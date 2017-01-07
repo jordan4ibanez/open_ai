@@ -206,12 +206,12 @@ open_ai.register_mob("horse",{
 		-- jump start = 130,
 		-- jump end = 155,
 	},
-	automatic_face_movement_dir = -90.0, --what direction the mob faces in
+	automatic_face_movement_dir = 0, --what direction the mob faces in
 	makes_footstep_sound = true, --if a mob makes footstep sounds
 	visual_size = {x=1,y=1}, --resizes a mob mesh if needed
 	
 	eye_offset = 8, --how high, or low a players camera is moved when riding mob
-	visual_offset = 16.5, --how high a players mesh looks when riding a mob
+	visual_offset = 9, --how high a players mesh looks when riding a mob
 	player_pose = { x=194, y=194, }, --the pose a player is in when riding a mob
 	
 	--mob behavior variables
