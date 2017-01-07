@@ -305,7 +305,7 @@ function ai_library.movement:leashpull(self,x,z)
 	local distance_3d = vector.distance(pos,pos2)
 	
 	--run leash visual
-	self.leash_visual(self,distance_3d,pos,vec)
+	self.ai_library.aesthetic:leash_visual(self,distance,pos,vec)
 	
 	--initialize a local variable
 	local distance
@@ -480,6 +480,7 @@ function ai_library.variables:on_step(self,dtime)
 	--remember total age and time existing since spawned
 	self.age = self.age + dtime
 	self.time_existing = self.time_existing + dtime
+	self.update_timer = self.update_timer + dtime
 end
 
 
@@ -500,13 +501,28 @@ function ai_library.variables:get_old_variables(self)
 	self.old_vel = table.copy(self.vel)
 	self.old_mpos = table.copy(self.mpos)
 	self.old_liquid = self.liquid
+	self.old_hp = self.object:get_hp()
+	self.old_liquid = self.liquid
 end			
-
 ---------------------------------------------------------------------------------------------------------##### end of variables class
 --the pathfind class
 ai_library.pathfind = {}
 ai_library.pathfind.__index = ai_library.pathfind
 --path finding towards goal - can be used to find food or water, or attack players or other mobs
+
+--pathfinding on step
+function ai_library.pathfind:on_step(self,dtime)
+	self.ai_library.pathfind:update(self,dtime)
+end
+
+--update pathfind
+function ai_library.pathfind:update(self,dtime)
+	if self.update_timer >= 0.5 then
+		self.update_timer = 0
+		self.ai_library.pathfind:find_path(self)
+	end
+end
+
 function ai_library.pathfind:find_path(self)
 	if self.following == true then
 		self.velocity = self.max_velocity
@@ -761,7 +777,7 @@ function ai_library.collision:ride_object(self,object)
 	object ~= self.object and 
 	object:get_luaentity().old_dir and 
 	object:get_luaentity().driver == nil) then
-		self.ride_in_cart(self,object)
+		self.ai_library.interaction:ride_in_cart(self,object)
 	end
 end
 
@@ -769,6 +785,10 @@ end
 ai_library.interaction = {}
 ai_library.interaction.__index = ai_library.interaction
 
+--interactions on step
+function ai_library.interaction:on_step(self)
+	self.ai_library.interaction:check_to_follow(self)
+end
 --what happens when you hit a mob
 function ai_library.interaction:on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
 	if self.user_defined_on_punch then
@@ -940,7 +960,351 @@ function ai_library.interaction:normalize(self)
 	end
 end
 
+--mob getting in cart
+function ai_library.interaction:ride_in_cart(self,object)
+	
+	--reset value if cart is removed
+	local ride = self.object:get_attach()
+	if ride == nil and self.in_cart == true then
+		self.in_cart = false
+	end
+	
+	if self.in_cart == false then
+		self.object:set_attach(object, "", {x=0, y=0, z=0}, {x=0, y=0, z=0})
+		object:get_luaentity().driver = "open_ai:mob"
+		self.in_cart = true
+	end
+end
+
+--check if a mob should follow a player when holding an item
+--check_to_follow
+function ai_library.interaction:check_to_follow(self)
+	--don't follow if leashed
+	if self.leashed == true then
+		return
+	end
+	self.following = false
+	--liquid mobs follow lure
+	if self.liquid_mob == true then
+		local pos = self.object:getpos()
+		for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 10)) do
+			if not object:is_player() and object:get_luaentity() and object:get_luaentity().is_lure == true and object:get_luaentity().in_water == true and object:get_luaentity().attached == nil then 
+				local pos2 = object:getpos()
+				local vec = {x=pos.x-pos2.x,y=pos2.y-pos.y, z=pos.z-pos2.z}
+				--how strong a leash is pulling up a mob
+				self.leash_pull = vec.y
+				--print(vec.x,vec.z)
+				local yaw = math.atan(vec.z/vec.x)+ math.pi / 2
+				
+				if yaw == yaw then
+					
+					if pos2.x > pos.x then
+						self.yaw = yaw+math.pi
+					end
+					
+					self.yaw = yaw
+				end
+				
+				--float up or down to lure
+				self.swim_pitch = vec.y
+			end
+		end
+	else
+		--pathfind to player
+		local pos = self.object:getpos()
+		for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 30)) do
+			if object:is_player() then
+				local item = object:get_wielded_item()
+				if item:to_string() ~= "" and item:to_table().name == self.follow_item then
+					self.following = true
+					self.target = object
+				else
+					self.following = false
+				end
+			end
+		end
+	end
+end
+
 -------------------------------------------------------------------------------------------------------#####end of interaction class
+ai_library.physical = {}
+ai_library.physical.__index = ai_library.physical
+
+
+--physical on step
+function ai_library.physical:on_step(self,dtime)
+	self.ai_library.physical:change_size(self,dtime)
+	self.ai_library.physical:velocity_damage(self,dtime)
+end
+
+--How a mob changes it's size
+function ai_library.physical:change_size(self,dtime)
+	--initialize this variable here for testing
+	if self.grow_timer == nil or self.size_change == nil then
+		--print("returning nil")
+		return
+	end
+	self.grow_timer = self.grow_timer - 0.1
+	
+	--limit ray size
+	if self.grow_timer <= 0 or ((self.scale_size > 5 and self.size_change > 0) or (self.scale_size < 0.2 and self.size_change < 0)) then
+		--print("size too big or too small")
+		self.grow_timer = nil
+		self.size_change = nil
+		return
+	end
+	--change based on variable
+	local size_multiplier = 1.1
+	if self.size_change < 0 then
+		--print("shrink")
+		self.scale_size = self.scale_size / 1.1
+		
+		--iterate through collisionbox
+		for i = 1,table.getn(self.collisionbox) do
+			self.collisionbox[i] = self.collisionbox[i] / size_multiplier
+		end
+		self.visual_size = {x=self.visual_size.x / size_multiplier, y = self.visual_size.y / size_multiplier}				
+	elseif self.size_change > 0 then
+		self.scale_size = self.scale_size * 1.1
+		--iterate through collisionbox
+		for i = 1,table.getn(self.collisionbox) do
+			self.collisionbox[i] = self.collisionbox[i] * size_multiplier
+		end
+		self.visual_size = {x=self.visual_size.x * size_multiplier, y = self.visual_size.y * size_multiplier}
+	end
+	self.height       = self.collisionbox[2]
+	self.width        = math.abs(self.collisionbox[1])
+	--vars for collision detection and floating
+	self.overhang     = self.collisionbox[5]
+	--create variable that can be added to pos to find center
+	self.center = (self.collisionbox[5]+self.collisionbox[2])/2
+				
+	--attempt to set the collionbox to internal yadayada
+	self.object:set_properties({collisionbox = self.collisionbox,visual_size=self.visual_size})
+	
+end
+
+
+--mob velocity damage x,y, and z
+function ai_library.physical:velocity_damage(self,dtime)
+	local vel = self.object:getvelocity()
+	if self.old_vel then
+	if  (vel.x == 0 and self.old_vel.x ~= 0) or
+		(vel.y == 0 and self.old_vel.y ~= 0) or
+		(vel.z == 0 and self.old_vel.z ~= 0) then
+		
+		local diff = vector.subtract(vel, self.old_vel)
+		
+		diff.x = math.ceil(math.abs(diff.x))
+		diff.y = math.ceil(math.abs(diff.y))
+		diff.z = math.ceil(math.abs(diff.z))
+		
+		local punches = 0
+		
+		--2 hearts of damage every 2 points over hurt_velocity
+		if diff.x > self.hurt_velocity then
+			punches = punches + diff.x
+		end
+		if diff.y > self.hurt_velocity then
+			punches = punches + diff.y
+		end
+		if diff.z > self.hurt_velocity then
+			punches = punches + diff.z
+		end
+		--hurt entity and set texture modifier
+		if punches > 0 then
+			self.object:punch(self.object, 1.0,  {
+				full_punch_interval=1.0,
+				damage_groups = {fleshy=punches}
+			}, nil)
+			
+		end
+	end
+	end
+	--this is created here because it is unnecasary to define it in initial properties
+	--self.old_vel = vel
+end
+-----------------------------------------------------------------------------------------------------#########end of physical class
+ai_library.aesthetic = {}
+ai_library.aesthetic.__index = ai_library.aestetic
+
+--run on step
+function ai_library.aesthetic:on_step(self,dtime)
+	self.ai_library.aesthetic:set_animation(self,dtime)
+	self.ai_library.aesthetic:check_for_hurt(self,dtime)
+	self.ai_library.aesthetic:hurt_texture_normalize(self,dtime)
+	self.ai_library.aesthetic:water_particles(self)
+end
+
+--water particles
+function ai_library.aesthetic:water_particles(self)
+	--falling into a liquid
+	if self.liquid ~= 0 and (self.old_liquid and self.old_liquid == 0) then
+		if self.vel.y < -3 then
+			local pos = self.object:getpos()
+			pos.y = pos.y + self.center + 0.1
+			
+			--play splash sound
+			minetest.sound_play("open_ai_falling_into_water", {
+				pos = pos,
+				max_hear_distance = 10,
+				gain = 1.0,
+			})
+			minetest.add_particlespawner({
+				amount = 10,
+				time = 0.01,
+				minpos = {x=pos.x-0.5, y=pos.y, z=pos.z-0.5},
+				maxpos = {x=pos.x+0.5, y=pos.y, z=pos.z+0.5},
+				minvel = {x=0, y=0, z=0},
+				maxvel = {x=0, y=0, z=0},
+				minacc = {x=0, y=0.5, z=0},
+				maxacc = {x=0, y=2, z=0},
+				minexptime = 1,
+				maxexptime = 2,
+				minsize = 1,
+				maxsize = 2,
+				collisiondetection = true,
+				vertical = false,
+				texture = "bubble.png",
+			})
+		end
+	end	
+end
+
+
+--check if mob is hurt and show damage
+function ai_library.aesthetic:check_for_hurt(self,dtime)
+	local hp = self.object:get_hp()
+	
+	if self.old_hp and hp < self.old_hp then
+		--run texture function
+		self.ai_library.aesthetic:hurt_texture(self,(self.old_hp-hp)/4)
+		--allow user to do something when hurt
+		if self.user_on_hurt then
+			self.user_on_hurt(self,self.old_hp-hp)
+		end
+	end
+end
+
+--makes a mob turn red when hurt
+function ai_library.aesthetic:hurt_texture(self,punches)
+	self.fall_damaged_timer = 0
+	self.fall_damaged_limit = punches
+end
+
+--makes a mob turn back to normal after being hurt
+function ai_library.aesthetic:hurt_texture_normalize(self,dtime)
+	--reset the mob texture and timer
+	if self.fall_damaged_timer ~= nil then
+		self.object:settexturemod("^[colorize:#ff0000:100")
+		self.fall_damaged_timer = self.fall_damaged_timer + dtime
+		if self.fall_damaged_timer >= self.fall_damaged_limit then
+			self.object:settexturemod("")
+			self.fall_damaged_timer = nil
+			self.fall_damaged_limit = nil
+		end
+	end
+end
+
+--how the mob sets it's mesh animation
+function ai_library.aesthetic:set_animation(self,dtime)
+	local vel = self.object:getvelocity()
+	--only use jump animation for jump only mobs
+	if self.jump_only == true then
+		--set animation if jumping
+		--future note, this is the function that should be used when setting the jump animation for normal mobs
+		if vel.y == 0 and (self.old_vel and self.old_vel.y < 0) then
+			self.object:set_animation({x=self.animation.jump_start,y=self.animation.jump_end}, self.animation.speed_normal, 0, false)
+			minetest.after(self.animation.speed_normal/100, function(self)
+				self.object:set_animation({x=self.animation.stand_start,y=self.animation.stand_end}, self.animation.speed_normal, 0, true)
+			end,self)
+			
+		end
+	--do normal walking animations
+	else
+		local speed = (math.abs(vel.x)+math.abs(vel.z))*self.animation.speed_normal --check this
+		
+		self.object:set_animation({x=self.animation.walk_start,y=self.animation.walk_end}, speed, 0, true)
+		--run this in here because it is part of animation and textures
+		self.ai_library.aesthetic:hurt_texture_normalize(self,dtime)
+		--set the riding player's animation to sitting
+		if self.attached and self.attached:is_player() and self.player_pose then
+			self.attached:set_animation(self.player_pose, 30,0)
+		end
+	end
+end
+
+
+--a visual of the leash
+function ai_library.aesthetic:leash_visual(self,distance,pos,vec)
+	--multiply times two if too far
+	distance = math.floor(distance*2) --make this an int for this function
+	
+	--divide the vec into a step to run through in the loop
+	local vec_steps = {x=vec.x/distance,y=vec.y/distance,z=vec.z/distance}
+	
+	--add particles to visualize leash
+	for i = 1,math.floor(distance) do
+		minetest.add_particle({
+			pos = {x=pos.x-(vec_steps.x*i), y=pos.y-(vec_steps.y*i), z=pos.z-(vec_steps.z*i)},
+			velocity = {x=0, y=0, z=0},
+			acceleration = {x=0, y=0, z=0},
+			expirationtime = 0.01,
+			size = 1,
+			collisiondetection = false,
+			vertical = false,
+			texture = "open_ai_leash_particle.png",
+		})
+	end
+end
+-----------------------------------------------------------------------------------------------------#########end of A E S T H E T I C class
+ai_library.behavior = {}
+ai_library.behavior.__index = ai_library.behavior
+
+--behavior on step
+function ai_library.behavior:on_step(self,dtime)
+	self.ai_library.behavior:decision(self,dtime)
+end
+
+--how a mob thinks
+function ai_library.behavior:decision(self,dtime)
+	--add to self counters
+	self.behavior_timer = self.behavior_timer + dtime
+	
+	--debug test to change behavior
+	if self.following == false and self.behavior_timer >= self.behavior_timer_goal and self.leashed == false then
+		local state_change = math.random(0,1)
+		
+		--normal direction changing, or if jump_only, only change direction on ground
+		if self.jump_only ~= true or (self.jump_only == true and self.vel.y == 0) then
+			--standing
+			if state_change == 0 then
+				self.yaw = (math.random(0, 360)/360) * (math.pi*2) --double pi to allow complete rotation
+				self.velocity = 0
+				self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
+				self.behavior_timer = 0
+				--make fish swim up and down randomly
+				if self.liquid_mob == true then
+					self.swim_pitch = 0
+				end
+			--walking, jumping, swimming
+			elseif state_change == 1 then
+				--print("Changed direction")
+				--self.goal = {x=math.random(-self.max_velocity,self.max_velocity),y=math.random(-self.max_velocity,self.max_velocity),z=math.random(-self.max_velocity,self.max_velocity)}
+				self.yaw = (math.random(0, 360)/360) * (math.pi*2) --double pi to allow complete rotation
+				self.velocity = math.random(1,self.max_velocity)+math.random()
+				self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
+				self.behavior_timer = 0
+				--make fish swim up and down randomly
+				if self.liquid_mob == true then
+					self.swim_pitch = math.random(-self.max_velocity,self.max_velocity)+(math.random()*math.random(-1,1))
+				end
+			end
+		end			
+	end		
+end
+-----------------------------------------------------------------------------------------------------##########end of behavior class
+
 open_ai.register_mob = function(name,def)
 	--add mobs to spawn table - with it's spawn node - and if liquid mob
 	open_ai.spawn_table[name] = {}
@@ -974,15 +1338,15 @@ open_ai.register_mob = function(name,def)
 		automatic_face_movement_dir = def.automatic_face_movement_dir, --for smoothness
 		
 		--Aesthetic variables
-		visual   = def.visual,
-		mesh     = def.mesh,
-		textures = def.textures,
+		visual        = def.visual,
+		mesh          = def.mesh,
+		textures      = def.textures,
 		makes_footstep_sound = def.makes_footstep_sound,
-		animation = def.animation,
-		visual_size = {x=def.visual_size.x, y=def.visual_size.y},
-		eye_offset = def.eye_offset,
+		animation     = def.animation,
+		visual_size   = {x=def.visual_size.x, y=def.visual_size.y},
+		eye_offset    = def.eye_offset,
 		visual_offset = def.visual_offset,
-		player_pose = def.player_pose,
+		player_pose   = def.player_pose,
 		
 		
 		--Behavioral variables
@@ -1043,398 +1407,55 @@ open_ai.register_mob = function(name,def)
 		--Inject the library into entity def
 		ai_library = table.copy(ai_library),
 		
-		--what mobs do when created
+		
 		on_activate = function(self, staticdata, dtime_s)
 			self.ai_library.activation:restore_variables(self,staticdata,dtime_s)
 		end,
-
-		--user defined function
-		user_defined_on_activate = def.on_activate,
-		
-		--when the mob entity is deactivated
 		get_staticdata = function(self)
 			return(self.ai_library.activation:getstaticdata(self))
 		end,
-		
-		user_defined_on_jump = def.on_jump,
-
-				--this runs everything that happens when a mob update timer resets
-		update = function(self,dtime)
-			self.update_timer = self.update_timer + dtime
-			if self.update_timer >= 0.2 then
-				self.update_timer = 0
-				self.ai_library.pathfind:find_path(self)
-			end
-		end,
-		--how a mob thinks
-		behavior = function(self,dtime)
-			self.behavior_timer = self.behavior_timer + dtime
-
-			local vel = self.object:getvelocity()
-	
-			--debug to find node the mob exists in
-			--local testpos = self.object:getpos()
-			--testpos.y = testpos.y-- - (self.height/2) -- the bottom of the entity
-			--local vec_pos = vector.floor(testpos) -- the node that the mob exists in
-		
-			--debug test to change behavior
-			if self.following == false and self.behavior_timer >= self.behavior_timer_goal and self.leashed == false then
-				--normal direction changing, or if jump_only, only change direction on ground
-				if self.jump_only ~= true or (self.jump_only == true and vel.y == 0) then
-					--print("Changed direction")
-					--self.goal = {x=math.random(-self.max_velocity,self.max_velocity),y=math.random(-self.max_velocity,self.max_velocity),z=math.random(-self.max_velocity,self.max_velocity)}
-					self.yaw = (math.random(0, 360)/360) * (math.pi*2) --double pi to allow complete rotation
-					self.velocity = math.random(1,self.max_velocity)+math.random()
-					self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
-					self.behavior_timer = 0
-					--make fish swim up and down randomly
-					if self.liquid_mob == true then
-						self.swim_pitch = math.random(-self.max_velocity,self.max_velocity)+(math.random()*math.random(-1,1))
-					end
-				end
-				--print("randomly moving around")
-			elseif self.following == true then
-				--print("following in behavior function")				
-			end		
-		end,
-		
-		
-
-		--a visual of the leash
-		leash_visual = function(self,distance,pos,vec)
-			--multiply times two if too far
-			distance = math.floor(distance*2) --make this an int for this function
-			
-			--divide the vec into a step to run through in the loop
-			local vec_steps = {x=vec.x/distance,y=vec.y/distance,z=vec.z/distance}
-			
-			--add particles to visualize leash
-			for i = 1,math.floor(distance) do
-				minetest.add_particle({
-					pos = {x=pos.x-(vec_steps.x*i), y=pos.y-(vec_steps.y*i), z=pos.z-(vec_steps.z*i)},
-					velocity = {x=0, y=0, z=0},
-					acceleration = {x=0, y=0, z=0},
-					expirationtime = 0.01,
-					size = 1,
-					collisiondetection = false,
-					vertical = false,
-					texture = "open_ai_leash_particle.png",
-				})
-			end
-		
-		end,
-		
-		--logic for riding in cart
-		ride_in_cart = function(self,object)
-			
-			--reset value if cart is removed
-			local ride = self.object:get_attach()
-			if ride == nil and self.in_cart == true then
-				self.in_cart = false
-			end
-			
-			if self.in_cart == false then
-				self.object:set_attach(object, "", {x=0, y=0, z=0}, {x=0, y=0, z=0})
-				object:get_luaentity().driver = "open_ai:mob"
-				self.in_cart = true
-			end
-		end,
-				
-		-- how a mob moves around the world
-		movement = function(self,dtime)			
-			self.ai_library.movement:onstep(self,dtime)
-		end,
-		
-
-		
-		--check if a mob should follow a player when holding an item
-		check_to_follow = function(self)
-			--don't follow if leashed
-			if self.leashed == true then
-				return
-			end
-			self.following = false
-			--liquid mobs follow lure
-			if self.liquid_mob == true then
-				local pos = self.object:getpos()
-				for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 10)) do
-					if not object:is_player() and object:get_luaentity() and object:get_luaentity().is_lure == true and object:get_luaentity().in_water == true and object:get_luaentity().attached == nil then 
-						local pos2 = object:getpos()
-						local vec = {x=pos.x-pos2.x,y=pos2.y-pos.y, z=pos.z-pos2.z}
-						--how strong a leash is pulling up a mob
-						self.leash_pull = vec.y
-						--print(vec.x,vec.z)
-						local yaw = math.atan(vec.z/vec.x)+ math.pi / 2
-						
-						if yaw == yaw then
-							
-							if pos2.x > pos.x then
-								self.yaw = yaw+math.pi
-							end
-							
-							self.yaw = yaw
-						end
-						
-						--float up or down to lure
-						self.swim_pitch = vec.y
-					end
-				end
-			else
-				--pathfind to player
-				local pos = self.object:getpos()
-				for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 30)) do
-					if object:is_player() then
-						local item = object:get_wielded_item()
-						if item:to_string() ~= "" and item:to_table().name == self.follow_item then
-							self.following = true
-							self.target = object
-						else
-							self.following = false
-						end
-					end
-				end
-			end
-		end,
-		
-		--mob velocity damage x,y, and z
-		velocity_damage = function(self,dtime)
-			local vel = self.object:getvelocity()
-			if self.old_vel then
-			if  (vel.x == 0 and self.old_vel.x ~= 0) or
-				(vel.y == 0 and self.old_vel.y ~= 0) or
-				(vel.z == 0 and self.old_vel.z ~= 0) then
-				
-				local diff = vector.subtract(vel, self.old_vel)
-				
-				diff.x = math.ceil(math.abs(diff.x))
-				diff.y = math.ceil(math.abs(diff.y))
-				diff.z = math.ceil(math.abs(diff.z))
-				
-				local punches = 0
-				
-				--2 hearts of damage every 2 points over hurt_velocity
-				if diff.x > self.hurt_velocity then
-					punches = punches + diff.x
-				end
-				if diff.y > self.hurt_velocity then
-					punches = punches + diff.y
-				end
-				if diff.z > self.hurt_velocity then
-					punches = punches + diff.z
-				end
-				--hurt entity and set texture modifier
-				if punches > 0 then
-					self.object:punch(self.object, 1.0,  {
-						full_punch_interval=1.0,
-						damage_groups = {fleshy=punches}
-					}, nil)
-					
-				end
-			end
-			end
-			--this is created here because it is unnecasary to define it in initial properties
-			--self.old_vel = vel
-		end,
-		
-		--check if mob is hurt and show damage
-		check_for_hurt = function(self,dtime)
-			local hp = self.object:get_hp()
-			
-			if self.old_hp and hp < self.old_hp then
-				--run texture function
-				self.hurt_texture(self,(self.old_hp-hp)/4)
-				--allow user to do something when hurt
-				if self.user_on_hurt then
-					self.user_on_hurt(self,self.old_hp-hp)
-				end
-			end
-			
-			self.old_hp = hp
-		end,
-		
-		user_on_hurt = def.on_hurt,
-		
-		--makes a mob turn red when hurt
-		hurt_texture = function(self,punches)
-			self.fall_damaged_timer = 0
-			self.fall_damaged_limit = punches
-		end,
-		--makes a mob turn back to normal after being hurt
-		hurt_texture_normalize = function(self,dtime)
-			--reset the mob texture and timer
-			if self.fall_damaged_timer ~= nil then
-				self.object:settexturemod("^[colorize:#ff0000:100")
-				self.fall_damaged_timer = self.fall_damaged_timer + dtime
-				if self.fall_damaged_timer >= self.fall_damaged_limit then
-					self.object:settexturemod("")
-					self.fall_damaged_timer = nil
-					self.fall_damaged_limit = nil
-				end
-			end
-		end,
-		
-		--how the mob sets it's mesh animation
-		set_animation = function(self,dtime)
-			local vel = self.object:getvelocity()
-			--only use jump animation for jump only mobs
-			if self.jump_only == true then
-				--set animation if jumping
-				--future note, this is the function that should be used when setting the jump animation for normal mobs
-				if vel.y == 0 and (self.old_vel and self.old_vel.y < 0) then
-					self.object:set_animation({x=self.animation.jump_start,y=self.animation.jump_end}, self.animation.speed_normal, 0, false)
-					minetest.after(self.animation.speed_normal/100, function(self)
-						self.object:set_animation({x=self.animation.stand_start,y=self.animation.stand_end}, self.animation.speed_normal, 0, true)
-					end,self)
-					
-				end
-			--do normal walking animations
-			else
-				local speed = (math.abs(vel.x)+math.abs(vel.z))*self.animation.speed_normal --check this
-				
-				self.object:set_animation({x=self.animation.walk_start,y=self.animation.walk_end}, speed, 0, true)
-				--run this in here because it is part of animation and textures
-				self.hurt_texture_normalize(self,dtime)
-				--set the riding player's animation to sitting
-				if self.attached and self.attached:is_player() and self.player_pose then
-					self.attached:set_animation(self.player_pose, 30,0)
-				end
-			end
-		end,
-		
-		--what happens when a mob is punched
 		on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
 			self.ai_library.interaction:on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
 		end,
-		
 		on_rightclick = function(self, clicker) 
 			self.ai_library.interaction:on_rightclick(self, clicker)
 		end,
 		
-		
-		
-		
-		--user defined
-		user_defined_on_punch = def.on_punch,
-		user_defined_on_die   = def.on_die,		
-		user_defined_on_rightclick = def.on_rightclick,
-		
-
-
-		--How a mob changes it's size
-		change_size = function(self,dtime)
-			--initialize this variable here for testing
-			if self.grow_timer == nil or self.size_change == nil then
-				--print("returning nil")
-				return
-			end
-			self.grow_timer = self.grow_timer - 0.1
-			
-			--limit ray size
-			if self.grow_timer <= 0 or ((self.scale_size > 5 and self.size_change > 0) or (self.scale_size < 0.2 and self.size_change < 0)) then
-				--print("size too big or too small")
-				self.grow_timer = nil
-				self.size_change = nil
-				return
-			end
-			--change based on variable
-			local size_multiplier = 1.1
-			if self.size_change < 0 then
-				--print("shrink")
-				self.scale_size = self.scale_size / 1.1
-				
-				--iterate through collisionbox
-				for i = 1,table.getn(self.collisionbox) do
-					self.collisionbox[i] = self.collisionbox[i] / size_multiplier
-				end
-				self.visual_size = {x=self.visual_size.x / size_multiplier, y = self.visual_size.y / size_multiplier}				
-			elseif self.size_change > 0 then
-				self.scale_size = self.scale_size * 1.1
-				--iterate through collisionbox
-				for i = 1,table.getn(self.collisionbox) do
-					self.collisionbox[i] = self.collisionbox[i] * size_multiplier
-				end
-				self.visual_size = {x=self.visual_size.x * size_multiplier, y = self.visual_size.y * size_multiplier}
-			end
-			self.height       = self.collisionbox[2]
-			self.width        = math.abs(self.collisionbox[1])
-			--vars for collision detection and floating
-			self.overhang     = self.collisionbox[5]
-			--create variable that can be added to pos to find center
-			self.center = (self.collisionbox[5]+self.collisionbox[2])/2
-			
-			
-			
-			
-			--attempt to set the collionbox to internal yadayada
-			self.object:set_properties({collisionbox = self.collisionbox,visual_size=self.visual_size})
-			
-		end,
-
-		--do particles
-		particles_and_sounds = function(self)
-			local vel = self.object:getvelocity()
-			
-			--falling into a liquid
-			if self.liquid ~= 0 and (self.old_liquid and self.old_liquid == 0) then
-				if vel.y < -3 then
-					local pos = self.object:getpos()
-					pos.y = pos.y + self.center + 0.1
-					
-					--play splash sound
-					minetest.sound_play("open_ai_falling_into_water", {
-						pos = pos,
-						max_hear_distance = 10,
-						gain = 1.0,
-					})
-					minetest.add_particlespawner({
-						amount = 10,
-						time = 0.01,
-						minpos = {x=pos.x-0.5, y=pos.y, z=pos.z-0.5},
-						maxpos = {x=pos.x+0.5, y=pos.y, z=pos.z+0.5},
-						minvel = {x=0, y=0, z=0},
-						maxvel = {x=0, y=0, z=0},
-						minacc = {x=0, y=0.5, z=0},
-						maxacc = {x=0, y=2, z=0},
-						minexptime = 1,
-						maxexptime = 2,
-						minsize = 1,
-						maxsize = 2,
-						collisiondetection = true,
-						vertical = false,
-						texture = "bubble.png",
-					})
-				end
-			end	
-			
-			--remember old liquid state here because it's only accessed by this function
-			self.old_liquid = self.liquid
-		end,
-		
 		--what mobs do on each server step
 		on_step = function(self,dtime)
+		
 			self.ai_library.variables:get_current_variables(self)
+						
+			self.ai_library.physical:on_step(self,dtime)
+
+			self.ai_library.interaction:on_step(self)
 			
-			self.particles_and_sounds(self)
-			self.change_size(self,dtime)
-			self.check_for_hurt(self,dtime)
-			self.check_to_follow(self)
-			self.behavior(self,dtime)
-			self.update(self,dtime)
-			self.set_animation(self,dtime)
-			self.movement(self,dtime)
-			--self.velocity_damage(self,dtime)
-			--self.find_age(self,dtime)
+			self.ai_library.behavior:on_step(self,dtime)
 			
-			self.ai_library.variables:on_step(self,dtime)--update variables, time for now
+			self.ai_library.pathfind:on_step(self,dtime)
+			
+			self.ai_library.aesthetic:on_step(self,dtime)
+			
+			self.ai_library.movement:onstep(self,dtime)
+						
+			self.ai_library.variables:on_step(self,dtime)
+			
 			if self.user_defined_on_step then
 				self.user_defined_on_step(self,dtime)
 			end
+			
 			self.ai_library.variables:get_old_variables(self)
+			
 		end,
 		
 		--a function that users can define
 		user_defined_on_step = def.on_step,	
-		
+		user_defined_on_punch = def.on_punch,
+		user_defined_on_die   = def.on_die,		
+		user_defined_on_rightclick = def.on_rightclick,
+		user_defined_on_jump = def.on_jump,
+		user_on_hurt = def.on_hurt,	
+		user_defined_on_activate = def.on_activate,
 		
 	})
 	
