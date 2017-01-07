@@ -757,36 +757,56 @@ function ai_library.interaction:on_punch(self, puncher, time_from_last_punch, to
 	end
 	
 	self.ai_library.interaction:knockback(self,puncher,dir)
+	self.ai_library.interaction:on_die(self,puncher,dir)
+end
 
-	--die
+--mob knockback
+function ai_library.interaction:knockback(self,puncher,dir)
+	if puncher:is_player() then
+		if self.vel.y ~= 0 then
+			return
+		end
+		local dirr = vector.multiply(dir,self.max_velocity)
+		self.object:setvelocity({x=dirr.x,y=self.jump_height,z=dirr.z})
+	end
+end
+
+--on die
+function ai_library.interaction:on_die(self,puncher,dir)
 	if self.object:get_hp() <= 0 then
-		--self.global_mob_counter(self) --remove from global mob count
 		--return player back to normal scale
-		if self.attached then
-		if self.attached:is_player() == true then
-			self.attached:set_properties({
-				visual_size = {x=1, y=1},
-			})
-			--revert back to normal
-			self.attached:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
-		end
-		end
+		self.ai_library.interaction:normalize(self)
+		
 		local pos = self.object:getpos()
-		minetest.add_item(pos,self.drops)
+		local pos2 = puncher:getpos()
+		
+		--throw item at player
+		--multiply dir times vector.distance
+		local object = minetest.add_item(pos,self.drops)
+					
+		local vec = vector.multiply(vector.multiply(dir,-1),vector.distance(pos,pos2))
+		
+		vec.y = vec.y * 3
+		
+		object:setvelocity(vec)
 		
 		if self.user_defined_on_die then
 			self.user_defined_on_die(self, puncher, time_from_last_punch, tool_capabilities, dir)
 		end
 	end
 end
-
-function ai_library.interaction:knockback(self,puncher,dir)
-	if puncher:is_player() then		
-		local dirr = vector.multiply(dir,self.max_velocity)
-		self.object:setvelocity({x=dirr.x,y=self.jump_height,z=dirr.z})
+--return player visuals to normal
+function ai_library.interaction:normalize(self)
+	if self.attached then
+	if self.attached:is_player() == true then
+		self.attached:set_properties({
+			visual_size = {x=1, y=1},
+		})
+		--revert back to normal
+		self.attached:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
+	end
 	end
 end
-
 
 -------------------------------------------------------------------------------------------------------#####end of interaction class
 open_ai.register_mob = function(name,def)
