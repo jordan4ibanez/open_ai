@@ -91,7 +91,7 @@ function ai_library.activation:restore_function(self)
 	--keep object riding
 	if self.attached_name then
 		self.attached = minetest.get_player_by_name(self.attached_name)
-		self.attached:set_attach(self.object, "", {x=0, y=self.visual_offset, z=0}, {x=0, y=self.automatic_face_movement_dir+90, z=0})
+		self.attached:set_attach(self.object, "body", {x=0, y=self.visual_offset, z=0}, {x=0, y=self.automatic_face_movement_dir+90, z=0}) -- "body" bone should really be a variable defined in the mob lua
 		if self.attached:is_player() == true then
 			self.attached:set_properties({
 				visual_size = {x=1/self.visual_size.x, y=1/self.visual_size.y},
@@ -847,7 +847,7 @@ function ai_library.interaction:ride_attempt(self,clicker)
 		if self.attached == nil and self.leashed == false then
 			self.attached = clicker
 			self.attached_name = clicker:get_player_name()
-			self.attached:set_attach(self.object, "", {x=0, y=self.visual_offset, z=0}, {x=0, y=self.automatic_face_movement_dir+90, z=0})
+			self.attached:set_attach(self.object, "body", {x=0, y=self.visual_offset, z=0}, {x=0, y=self.automatic_face_movement_dir+90, z=0}) -- "body" bone should really be a variable defined in the mob lua
 			--sit animation
 			if self.attached:is_player() == true then
 				self.attached:set_properties({
