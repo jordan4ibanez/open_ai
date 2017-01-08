@@ -1311,14 +1311,16 @@ open_ai.register_mob = function(name,def)
 	open_ai.spawn_table[name].spawn_node = def.spawn_node
 	open_ai.spawn_table[name].liquid_mob = def.liquid_mob
 	
-	--store default collision box globally
-	open_ai.defaults["open_ai:"..name] = {}
-	open_ai.defaults["open_ai:"..name]["collisionbox"] = table.copy(def.collisionbox)
+	local entity_name = minetest.get_current_modname()..":"..name
 	
-	minetest.register_entity("open_ai:"..name, {
+	--store default collision box globally
+	open_ai.defaults[entity_name] = {}
+	open_ai.defaults[entity_name]["collisionbox"] = table.copy(def.collisionbox)
+	
+	minetest.register_entity(entity_name, {
 		--Do simpler definition variables for ease of use
 		mob          = true,
-		name         = "open_ai:"..name,
+		name         = entity_name,
 		
 		collisionbox = def.collisionbox,--{-def.width/2,-def.height/2,-def.width/2,def.width/2,def.height/2,def.width/2},		
 		height       = def.collisionbox[2], --sample from bottom of collisionbox - absolute for the sake of math
@@ -1459,7 +1461,7 @@ open_ai.register_mob = function(name,def)
 		
 	})
 	
-	open_ai.register_safari_ball("open_ai:"..name,def.ball_color,math.abs(def.collisionbox[2]))
+	open_ai.register_safari_ball(entity_name,def.ball_color,math.abs(def.collisionbox[2]))
 	
 end
 

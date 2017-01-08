@@ -99,8 +99,9 @@ minetest.register_entity("open_ai:safari_ball_no_mob", {
 --function that creates safari ball item and entity
 open_ai.register_safari_ball = function(mob_name, color,height)
 	local texture = "open_ai_safari_ball_top.png^[colorize:#"..color.."^open_ai_safari_ball_bottom.png"
+	local entity_name = minetest.get_current_modname()..":safari_ball_"..mob_name:match("^.-:(.*)")
 	--item
-	minetest.register_craftitem("open_ai:safari_ball_"..mob_name:match("^.-:(.*)"), {
+	minetest.register_craftitem(entity_name, {
 		--remove modname and capitalize first letter
 		description = "Safari Ball Containing "..mob_name:match("^.-:(.*)"):gsub("^%l", string.upper),
 		inventory_image = texture,
@@ -115,7 +116,7 @@ open_ai.register_safari_ball = function(mob_name, color,height)
 				gain = 10.0,
 				object = obj,
 			})
-			local obj = minetest.add_entity(pos, "open_ai:safari_ball_"..mob_name:match("^.-:(.*)"))
+			local obj = minetest.add_entity(pos, entity_name)
 			
 			obj:setvelocity({x = (v.x * 7)+vel.x, y = (v.y * 7 + 4)+vel.y, z = (v.z * 7)+vel.z})
 			obj:setacceleration({x = 0, y = -10, z = 0})
@@ -126,7 +127,7 @@ open_ai.register_safari_ball = function(mob_name, color,height)
 	})
 	
 	--entity
-	minetest.register_entity("open_ai:safari_ball_"..mob_name:match("^.-:(.*)"), {
+	minetest.register_entity(entity_name, {
 		physical = true,
 		collide_with_objects = false,
 		collisionbox = {-0.1, -0.1, -0.1, 0.1, 0.1, 0.1},
