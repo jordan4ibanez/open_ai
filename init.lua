@@ -936,11 +936,13 @@ function ai_library.interaction:on_die(self,puncher,dir)
 		--multiply dir times vector.distance
 		local object = minetest.add_item(pos,self.drops)
 					
-		local vec = vector.multiply(vector.multiply(dir,-1),vector.distance(pos,pos2))
+		if object then
+			local vec = vector.multiply(vector.multiply(dir,-1),vector.distance(pos,pos2))
 		
-		vec.y = vec.y * 3
+			vec.y = vec.y * 3
 		
-		object:setvelocity(vec)
+			object:setvelocity(vec)
+		end
 		
 		if self.user_defined_on_die then
 			self.user_defined_on_die(self, puncher, time_from_last_punch, tool_capabilities, dir)
