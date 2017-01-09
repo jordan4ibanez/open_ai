@@ -1273,12 +1273,14 @@ function ai_library.behavior:decision(self,dtime)
 	
 	--debug test to change behavior
 	if self.following == false and self.behavior_timer >= self.behavior_timer_goal and self.leashed == false then
-		local state_change = math.random(0,1)
+		self.state = math.random(0,2)
+		
+		
 		
 		--normal direction changing, or if jump_only, only change direction on ground
 		if self.jump_only ~= true or (self.jump_only == true and self.vel.y == 0) then
 			--standing
-			if state_change == 0 then
+			if self.state == 0 then
 				self.yaw = (math.random(0, 360)/360) * (math.pi*2) --double pi to allow complete rotation
 				self.velocity = 0
 				self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
@@ -1288,7 +1290,7 @@ function ai_library.behavior:decision(self,dtime)
 					self.swim_pitch = 0
 				end
 			--walking, jumping, swimming
-			elseif state_change == 1 then
+			elseif self.state == 1 then
 				--print("Changed direction")
 				--self.goal = {x=math.random(-self.max_velocity,self.max_velocity),y=math.random(-self.max_velocity,self.max_velocity),z=math.random(-self.max_velocity,self.max_velocity)}
 				self.yaw = (math.random(0, 360)/360) * (math.pi*2) --double pi to allow complete rotation
@@ -1299,11 +1301,115 @@ function ai_library.behavior:decision(self,dtime)
 				if self.liquid_mob == true then
 					self.swim_pitch = math.random(-self.max_velocity,self.max_velocity)+(math.random()*math.random(-1,1))
 				end
+			--build a structure
+			elseif self.state == 2 then
+				self.building = true
+				
+				self.yaw = (math.random(0, 360)/360) * (math.pi*2) --double pi to allow complete rotation
+				self.velocity = 0
+				self.behavior_timer_goal = math.random(self.behavior_change_min,self.behavior_change_max)
+				self.behavior_timer = 0
+				--make fish swim up and down randomly
+				if self.liquid_mob == true then
+					self.swim_pitch = 0
+				end
 			end
 		end			
 	end		
 end
 -----------------------------------------------------------------------------------------------------##########end of behavior class
+--[[
+This is how mobs build things
+
+This is wip
+
+
+--]]
+
+ai_library.build = {}
+ai_library.build.__index = ai_library.build
+
+function ai_library.build:on_step(self,dtime)
+	if self.building ~= true then
+		return
+	end
+	self.ai_library.build:hold_behavior(self)
+	self.ai_library.build:load_schematic(self)
+	self.ai_library.build:build_schematic(self,dtime)
+end
+
+--hold the behavior until finished
+function ai_library.build:hold_behavior(self)
+	self.behavior_timer = 0
+end
+
+
+--inject a schematic for what it will build, else don't execute
+function ai_library.build:load_schematic(self)
+	if self.schematic == nil then
+		print("getting schematic")
+		local building = minetest.get_modpath("open_ai").."/schematics/jungle_tree.mts"
+		local str = minetest.serialize_schematic(building, "lua", {lua_use_comments = false, lua_num_indent_spaces = 0}).." return(schematic)"
+		self.schematic = loadstring(str)()
+		self.schematic_map = {x=1,y=1,z=1}
+		self.schematic_origin = table.copy(self.mpos)
+		self.schematic_size = schematic.size
+		self.index = 1
+	end
+end
+
+
+--build the structure node by node
+function ai_library.build:build_schematic(self,dtime)
+	self.build_timer = self.build_timer + dtime
+	--place next node if timer is up or if next node is air
+	if self.build_timer > 0.1 or (self.schematic.data[self.index] and self.schematic.data[self.index].name == "air") then
+
+		self.build_timer = 0
+				
+		--reset all the mappings
+		if self.schematic_map.x > self.schematic_size.x then
+			self.schematic_map.x = 1
+			self.schematic_map.y = self.schematic_map.y + 1
+		end
+		if self.schematic_map.y > self.schematic_size.y then
+			self.schematic_map.y = 1
+			self.schematic_map.z = self.schematic_map.z + 1
+		end
+		--
+		--finished
+		if self.schematic_map.z > self.schematic_size.z then
+			self.schematic_map.z = 1
+			self.building = false
+			self.schematic = nil
+			print("done")
+			return
+		end
+		---
+		
+		--print(dump(self.schematic_map))
+
+		print(dump(self.schematic.data[self.index]))
+
+		minetest.set_node({x=self.schematic_origin.x+self.schematic_map.x,y=self.schematic_origin.y+self.schematic_map.y,z=self.schematic_origin.z+self.schematic_map.z}, self.schematic.data[self.index])
+
+		
+		self.schematic_map.x = self.schematic_map.x + 1
+		self.index = self.index + 1
+	end
+end
+
+
+
+
+
+
+
+
+
+
+
+-----------------------------------------------------------------------------------------------------------
 
 open_ai.register_mob = function(name,def)
 	--add mobs to spawn table - with it's spawn node - and if liquid mob
@@ -1405,10 +1511,11 @@ open_ai.register_mob = function(name,def)
 		--Internal variables
 		age = 0,
 		time_existing = 0, --this won't be saved for static data polling
+		build_timer = 0,
+		schematic_map = {x=1,y=1,z=1},
 		
 		--Inject the library into entity def
 		ai_library = table.copy(ai_library),
-		
 		
 		on_activate = function(self, staticdata, dtime_s)
 			self.ai_library.activation:restore_variables(self,staticdata,dtime_s)
@@ -1425,6 +1532,8 @@ open_ai.register_mob = function(name,def)
 		
 		--what mobs do on each server step
 		on_step = function(self,dtime)
+		
+			self.ai_library.build:on_step(self,dtime)
 		
 			self.ai_library.variables:get_current_variables(self)
 						
