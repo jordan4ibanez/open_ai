@@ -11,8 +11,17 @@ function ai_library.activation:restore_variables(self,staticdata,dtime_s)
 			self[key] = value
 		end
 	end
+	self.ai_library.activation:set_id(self)
 	self.ai_library.activation:restore_function(self)
 	self.user_defined_on_activate(self,staticdata,dtime_s)
+end
+
+--give the mob an individual id when spawned
+function ai_library.activation:set_id(self)
+	if self.age == 0 then
+		--print("give id")
+		self.ai_library.helpers:add_mob_count(self)
+	end
 end
 
 --this keeps the mob consistant
@@ -64,7 +73,7 @@ function ai_library.activation:restore_function(self)
 	if self.velocity == nil then
 		self.velocity = 0
 	end
-	print("Remember to add to global id table")
+	--print("Remember to add to global id table")
 end
 function ai_library.activation:getstaticdata(self)
 	--don't get static data if just spawning

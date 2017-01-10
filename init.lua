@@ -1,10 +1,12 @@
 
 --global to enable other mods/packs to utilize the ai
 open_ai = {}
-open_ai.mob_count = 0
+--open_ai.mob_count = 0
 open_ai.max_mobs = 2000 -- limit the max number of mobs existing in the world
 open_ai.defaults = {} --fix a weird entity glitch where entities share collision boxes
 open_ai.spawn_table = {} --the table which mobs can globaly store data
+
+
 
 
 dofile(minetest.get_modpath("open_ai").."/leash.lua")
@@ -14,6 +16,7 @@ dofile(minetest.get_modpath("open_ai").."/fishing.lua")
 dofile(minetest.get_modpath("open_ai").."/commands.lua")
 dofile(minetest.get_modpath("open_ai").."/items.lua")
 dofile(minetest.get_modpath("open_ai").."/rayguns.lua")
+
 
 
 
@@ -58,6 +61,7 @@ end,
 ai_library = {}
 
 --call all the library classes
+dofile(minetest.get_modpath("open_ai").."/ai/helpers.lua")
 dofile(minetest.get_modpath("open_ai").."/ai/activation.lua")
 dofile(minetest.get_modpath("open_ai").."/ai/movement.lua")
 dofile(minetest.get_modpath("open_ai").."/ai/variables.lua")
@@ -68,6 +72,10 @@ dofile(minetest.get_modpath("open_ai").."/ai/physical.lua")
 dofile(minetest.get_modpath("open_ai").."/ai/aesthetic.lua")
 dofile(minetest.get_modpath("open_ai").."/ai/behavior.lua")
 dofile(minetest.get_modpath("open_ai").."/ai/build.lua")
+
+--run the initialization for world with this freshly installed, or new worlds
+--allows it to be put into new worlds, or put into worlds that already exist
+ai_library.helpers:initialization()
 
 
 open_ai.register_mob = function(name,def)

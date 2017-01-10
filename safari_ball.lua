@@ -76,8 +76,8 @@ minetest.register_entity("open_ai:safari_ball_no_mob", {
 				minetest.add_item(pos, "open_ai:safari_ball_"..name:match("^.-:(.*)"))
 				object:remove()
 				self.object:remove()
-				open_ai.mob_count = open_ai.mob_count - 1
-				minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
+				--open_ai.mob_count = open_ai.mob_count - 1
+				--minetest.chat_send_all(open_ai.mob_count.." Mobs in world!")
 				return
 			end
 		end
