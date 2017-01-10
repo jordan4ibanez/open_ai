@@ -155,7 +155,7 @@ function ai_library.movement:leashpull(self,x,z)
 	local distance_3d = vector.distance(pos,pos2)
 	
 	--run leash visual
-	self.ai_library.aesthetic:leash_visual(self,distance,pos,vec)
+	self.ai_library.aesthetic:leash_visual(self,distance_3d,pos,vec)
 	
 	--initialize a local variable
 	local distance
