@@ -15,7 +15,7 @@ end
 function ai_library.variables:get_current_variables(self)
 	--save these variables on each step
 	self.mpos = self.object:getpos()
-	self.liquid = minetest.registered_nodes[minetest.get_node(self.mpos).name].liquid_viscosity
+	self.liquid = minetest.registered_nodes[minetest.get_node({x=self.mpos.x,y=self.mpos.y+self.center,z=self.mpos.z}).name].liquid_viscosity
 	self.vel = self.object:getvelocity()
 	
 	--reset these variables on each step
