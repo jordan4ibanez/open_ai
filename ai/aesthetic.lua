@@ -9,6 +9,11 @@ function ai_library.aesthetic:on_step(self,dtime)
 	self.ai_library.aesthetic:water_particles(self)
 end
 
+--show nametag of id for debug
+function ai_library.aesthetic:debug_id(self)
+	self.object:set_properties({nametag = self.id,nametag_color = "red"})
+end
+
 --water particles
 function ai_library.aesthetic:water_particles(self)
 	--falling into a liquid

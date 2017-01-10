@@ -22,6 +22,8 @@ function ai_library.activation:set_id(self)
 		--print("give id")
 		self.ai_library.helpers:add_mob_count(self)
 	end
+	--show id number
+	self.ai_library.aesthetic:debug_id(self)
 end
 
 --this keeps the mob consistant
