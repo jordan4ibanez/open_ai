@@ -513,6 +513,9 @@ open_ai.register_mob("slime",{
 	--what a mob drops on death
 	drops = "dye:green",
 	
+	-- colour of "blood"
+	hit_color = "00CC00",
+
 	--user defined functions
 	on_step = function(self,dtime)
 		--print("test")
