@@ -28,11 +28,11 @@ minetest.register_chatcommand("spawn", {
 		--add amount of entities if registered
 		if minetest.registered_entities[str] ~= nil then
 			local pos = minetest.get_player_by_name(name):getpos()
+			pos.y = pos.y - open_ai.defaults[str]["collisionbox"][2]
 			--print(amount)
 			--add in amount through loop
 			if amount > 1 then
 				for i = 1,amount do 
-					print(i)
 					minetest.add_entity(pos,str)
 				end
 			else --add single

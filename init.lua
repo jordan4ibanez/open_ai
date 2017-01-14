@@ -11,7 +11,7 @@ open_ai.spawn_table = {} --the table which mobs can globaly store data
 
 dofile(minetest.get_modpath("open_ai").."/leash.lua")
 dofile(minetest.get_modpath("open_ai").."/safari_ball.lua")
---dofile(minetest.get_modpath("open_ai").."/spawning.lua")
+dofile(minetest.get_modpath("open_ai").."/spawning.lua")
 dofile(minetest.get_modpath("open_ai").."/fishing.lua")
 dofile(minetest.get_modpath("open_ai").."/commands.lua")
 dofile(minetest.get_modpath("open_ai").."/items.lua")
@@ -80,12 +80,10 @@ ai_library.helpers:initialization()
 
 open_ai.register_mob = function(name,def)
 	--add mobs to spawn table - with it's spawn node - and if liquid mob
-	open_ai.spawn_table[name] = {}
-	open_ai.spawn_table[name].spawn_node = def.spawn_node
-	open_ai.spawn_table[name].liquid_mob = def.liquid_mob
-	
 	local entity_name = minetest.get_current_modname()..":"..name
-	
+	open_ai.spawn_table[entity_name] = {}
+	open_ai.spawn_table[entity_name].spawn_node = def.spawn_node
+	open_ai.spawn_table[entity_name].liquid_mob = def.liquid_mob
 	--store default collision box globally
 	open_ai.defaults[entity_name] = {}
 	open_ai.defaults[entity_name]["collisionbox"] = table.copy(def.collisionbox)

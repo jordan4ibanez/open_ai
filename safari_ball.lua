@@ -114,7 +114,7 @@ open_ai.register_safari_ball = function(mob_name, color,height)
 			minetest.sound_play("open_ai_safari_ball_throw", {
 				max_hear_distance = 20,
 				gain = 10.0,
-				object = obj,
+				pos = pos,
 			})
 			local obj = minetest.add_entity(pos, entity_name)
 			

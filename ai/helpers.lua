@@ -21,7 +21,7 @@ function ai_library.helpers:create_conf()
 	local check = open_ai.conf:get("count")
 	if not check then
 		ai_library.helpers:write_setting("count",0)
-		ai_library.helpers:write_setting("peaceful",0)--1 would be hostile mobs
+		ai_library.helpers:write_setting("peaceful",1)--0 would be hostile mobs
 	end
 end
 

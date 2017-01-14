@@ -171,3 +171,26 @@ function ai_library.aesthetic:on_die(self)
 		texture = "open_ai_dot_particle.png^[colorize:#CC0000:255",
 	})
 end
+
+--taming visual
+function ai_library.aesthetic:tamed(self)
+	--add to particles class
+	minetest.add_particlespawner({
+		amount = 50,
+		time = 0.001,
+		minpos = self.mpos,
+		maxpos = self.mpos,
+		minvel = {x=-6, y=3, z=-6},
+		maxvel = {x=6, y=8, z=6},
+		minacc = {x=0, y=-10, z=0},
+		maxacc = {x=0, y=-10, z=0},
+		minexptime = 1,
+		maxexptime = 2,
+		minsize = 1,
+		maxsize = 2,
+		collisiondetection = false,
+		vertical = false,
+		texture = "heart.png",
+	})
+end
+
