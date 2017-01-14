@@ -143,6 +143,8 @@ end
 --on die
 function ai_library.interaction:on_die(self,puncher,dir)
 	if self.object:get_hp() <= 0 then
+		self.ai_library.aesthetic:on_die(self)
+	
 		--return player back to normal scale
 		self.ai_library.interaction:normalize(self)
 		

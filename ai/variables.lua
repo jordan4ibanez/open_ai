@@ -4,6 +4,7 @@ ai_library.variables.__index = ai_library.variables
 
 --update variables
 function ai_library.variables:on_step(self,dtime)
+	self.ai_library.variables:add_variables(self,dtime)
 	--remember total age and time existing since spawned
 	self.age = self.age + dtime
 	self.time_existing = self.time_existing + dtime
@@ -30,4 +31,11 @@ function ai_library.variables:get_old_variables(self)
 	self.old_liquid = self.liquid
 	self.old_hp = self.object:get_hp()
 	self.old_liquid = self.liquid
-end			
+end
+
+--add arbitrary variables
+function ai_library.variables:add_variables(self,dtime)
+	if self.fall_damaged_timer then
+		self.fall_damaged_timer = self.fall_damaged_timer + dtime
+	end
+end

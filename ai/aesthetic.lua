@@ -72,12 +72,26 @@ end
 
 --makes a mob turn back to normal after being hurt
 function ai_library.aesthetic:hurt_texture_normalize(self,dtime)
-	--reset the mob texture and timer
+	--apply the particle effect
 	if self.fall_damaged_timer ~= nil then
-		self.object:settexturemod("^[colorize:#ff0000:100")
-		self.fall_damaged_timer = self.fall_damaged_timer + dtime
+		minetest.add_particlespawner({
+				amount = 2,
+				time = 0.01,
+				minpos = self.mpos,
+				maxpos = self.mpos,
+				minvel = {x=-5, y=5, z=-5},
+				maxvel = {x=5, y=8, z=5},
+				minacc = {x=0, y=-10, z=0},
+				maxacc = {x=0, y=-10, z=0},
+				minexptime = 1,
+				maxexptime = 2,
+				minsize = 1,
+				maxsize = 1,
+				collisiondetection = true,
+				vertical = false,
+				texture = "open_ai_dot_particle.png^[colorize:#CC0000:255",
+			})
 		if self.fall_damaged_timer >= self.fall_damaged_limit then
-			self.object:settexturemod("")
 			self.fall_damaged_timer = nil
 			self.fall_damaged_limit = nil
 		end
@@ -134,4 +148,26 @@ function ai_library.aesthetic:leash_visual(self,distance,pos,vec)
 			texture = "open_ai_leash_particle.png",
 		})
 	end
+end
+
+
+--visual on death
+function ai_library.aesthetic:on_die(self)
+	minetest.add_particlespawner({
+		amount = 100,
+		time = 0.01,
+		minpos = self.mpos,
+		maxpos = self.mpos,
+		minvel = {x=-5, y=5, z=-5},
+		maxvel = {x=5, y=8, z=5},
+		minacc = {x=0, y=-10, z=0},
+		maxacc = {x=0, y=-10, z=0},
+		minexptime = 1,
+		maxexptime = 2,
+		minsize = 1,
+		maxsize = 1,
+		collisiondetection = true,
+		vertical = false,
+		texture = "open_ai_dot_particle.png^[colorize:#CC0000:255",
+	})
 end
