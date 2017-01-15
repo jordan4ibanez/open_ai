@@ -27,7 +27,9 @@ function ai_library.pathfind:find_path(self)
 		end
 		
 		--local path = nil
-		--[[
+		
+		
+		--DON'T FALL OFF STUFF
 		local eye_pos = self.object:getpos()
 		eye_pos.y = eye_pos.y + self.overhang 
 		
@@ -80,13 +82,15 @@ function ai_library.pathfind:find_path(self)
 		end
 		
 		--pathfind if target is too high
-		if vector.subtract(self.target_pos,pos1).y > 1 then
+		if math.abs(vector.subtract(self.target_pos,pos1).y) > 1 then
 			pathfind_bool = true
 		end
-		]]--
-		local line_of_sight = false
+		---
+		--local line_of_sight = false
+		
 		if line_of_sight == true and pathfind_bool ~= true then
-			self.path = nil
+			--print("walking")
+			self.path = {}
 			
 			local vec = vector.subtract(pos1, self.target_pos)
 			
@@ -95,7 +99,9 @@ function ai_library.pathfind:find_path(self)
 			if self.target_pos.x > pos1.x then
 				self.yaw = self.yaw+math.pi
 			end
+			
 		else
+			--print("pathfinding")
 			
 			local old_equals_new = false
 			
@@ -104,7 +110,7 @@ function ai_library.pathfind:find_path(self)
 			end
 			
 			--if can't get goal then don't pathfind
-			if self.target_pos and old_equals_new == false then
+			if (self.target_pos and old_equals_new == false) or table.getn(self.path) == 0  then
 				print("finding new path")
 				self.path = minetest.find_path(pos1,self.target_pos,10,1,2,"Dijkstra")
 			end
@@ -116,7 +122,7 @@ function ai_library.pathfind:find_path(self)
 			end
 			
 			local node_below = minetest.registered_nodes[minetest.get_node({x=vec_pos.x,y=vec_pos.y-1,z=vec_pos.z}).name].walkable
-			--[[
+			
 			--set position to closest node
 			if node_below == false then
 				--if minetest.registered_nodes[minetest.get_node({x=pos1.x,y=pos1.y-2,z=pos1.z}).name].walkable then
@@ -144,7 +150,6 @@ function ai_library.pathfind:find_path(self)
 				
 				self.path = minetest.find_path(vector.round(pos1),self.target_pos,10,1,2,"Dijkstra")
 			end
-			]]--
 			--print(vec_pos.x,vec_pos.z, self.path[2].x,self.path[2].z)
 			
 			--{x=5,y=4,z=3}
