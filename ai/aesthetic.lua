@@ -194,3 +194,46 @@ function ai_library.aesthetic:tamed(self)
 	})
 end
 
+--sitting visual
+function ai_library.aesthetic:sat(self)
+	--add to particles class
+	minetest.add_particlespawner({
+		amount = 50,
+		time = 0.001,
+		minpos = self.mpos,
+		maxpos = self.mpos,
+		minvel = {x=-6, y=3, z=-6},
+		maxvel = {x=6, y=8, z=6},
+		minacc = {x=0, y=-10, z=0},
+		maxacc = {x=0, y=-10, z=0},
+		minexptime = 1,
+		maxexptime = 2,
+		minsize = 1,
+		maxsize = 1,
+		collisiondetection = false,
+		vertical = false,
+		texture = "open_ai_slime_particle.png^[colorize:#ff0000:255",
+	})
+end
+--standing visual
+function ai_library.aesthetic:stood(self)
+	--add to particles class
+	minetest.add_particlespawner({
+		amount = 50,
+		time = 0.001,
+		minpos = self.mpos,
+		maxpos = self.mpos,
+		minvel = {x=-6, y=3, z=-6},
+		maxvel = {x=6, y=8, z=6},
+		minacc = {x=0, y=-10, z=0},
+		maxacc = {x=0, y=-10, z=0},
+		minexptime = 1,
+		maxexptime = 2,
+		minsize = 1,
+		maxsize = 1,
+		collisiondetection = false,
+		vertical = false,
+		texture = "open_ai_slime_particle.png^[colorize:#00ff00:255",
+	})
+end
+

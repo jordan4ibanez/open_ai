@@ -123,9 +123,11 @@ function ai_library.interaction:sit(self,clicker)
 		if self.sitting == nil then
 			self.sitting = true
 			minetest.chat_send_player(clicker:get_player_name(), "Mob is sitting!")
+			self.ai_library.aesthetic:sat(self)
 		else
 			self.sitting = nil
 			minetest.chat_send_player(clicker:get_player_name(), "Mob is free!")
+			self.ai_library.aesthetic:stood(self)
 		end
 	end
 end
