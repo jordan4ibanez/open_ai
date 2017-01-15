@@ -89,7 +89,7 @@ function ai_library.aesthetic:hurt_texture_normalize(self,dtime)
 				maxsize = 1,
 				collisiondetection = true,
 				vertical = false,
-				texture = "open_ai_dot_particle.png^[colorize:#CC0000:255",
+				texture = "open_ai_dot_particle.png^[colorize:#" .. self.hit_color .. ":255",
 			})
 		if self.fall_damaged_timer >= self.fall_damaged_limit then
 			self.fall_damaged_timer = nil
@@ -168,7 +168,7 @@ function ai_library.aesthetic:on_die(self)
 		maxsize = 1,
 		collisiondetection = true,
 		vertical = false,
-		texture = "open_ai_dot_particle.png^[colorize:#CC0000:255",
+		texture = "open_ai_dot_particle.png^[colorize:#" .. self.hit_color .. ":255",
 	})
 end
 
