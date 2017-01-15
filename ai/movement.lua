@@ -245,7 +245,7 @@ function ai_library.movement.jump:jump(self,velcheck,move,checkifstopped)
 	self.object:setvelocity({x=x,y=self.jump_height,z=z})
 	--execute player defined function
 	if self.user_defined_on_jump then
-		self.user_defined_on_jump(self,dtime)
+		self.user_defined_on_jump(self)
 	end
 end
 

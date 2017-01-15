@@ -12,7 +12,7 @@ function ai_library.interaction:on_punch(self, puncher, time_from_last_punch, to
 		self.user_defined_on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
 	end
 	self.ai_library.interaction:knockback(self,puncher,dir)
-	self.ai_library.interaction:on_die(self,puncher,dir)
+	self.ai_library.interaction:on_die(self,puncher,dir,tool_capabilities,time_from_last_punch)
 end
 
 --what happens when you right click a mob
@@ -144,7 +144,7 @@ function ai_library.interaction:knockback(self,puncher,dir)
 end
 
 --on die
-function ai_library.interaction:on_die(self,puncher,dir)
+function ai_library.interaction:on_die(self,puncher,dir,tool_capabilities,time_from_last_punch)
 	if self.object:get_hp() <= 0 then
 		self.ai_library.aesthetic:on_die(self)
 	

@@ -31,6 +31,10 @@ function ai_library.variables:get_old_variables(self)
 	self.old_liquid = self.liquid
 	self.old_hp = self.object:get_hp()
 	self.old_liquid = self.liquid
+	if self.target_pos then
+		self.old_target_pos = self.target_pos
+	end
+	self.old_following = self.following
 end
 
 --add arbitrary variables

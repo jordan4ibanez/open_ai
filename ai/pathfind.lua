@@ -10,10 +10,7 @@ end
 
 --update pathfind
 function ai_library.pathfind:update(self,dtime)
-	if self.update_timer >= 0.5 then
-		self.update_timer = 0
-		self.ai_library.pathfind:find_path(self)
-	end
+	self.ai_library.pathfind:find_path(self)
 end
 
 function ai_library.pathfind:find_path(self)
@@ -23,13 +20,14 @@ function ai_library.pathfind:find_path(self)
 		local pos1 = self.object:getpos()
 		pos1.y = pos1.y + self.height
 		
-		local pos2 = self.target:getpos() -- this is the goal debug
+		self.target_pos = vector.round(self.target:getpos()) -- this is the goal debug
+				
 		if not self.target:is_player() then
-			pos2.y = pos2.y + self.target:get_luaentity().height
+			self.target_pos.y = self.target_pos.y + self.target:get_luaentity().height
 		end
 		
-		local path = nil
-		
+		--local path = nil
+		--[[
 		local eye_pos = self.object:getpos()
 		eye_pos.y = eye_pos.y + self.overhang 
 		
@@ -41,38 +39,26 @@ function ai_library.pathfind:find_path(self)
 		end
 		
 		minetest.add_particle({
-				pos = pos1,
-				velocity = {x=0, y=0, z=0},
-				acceleration = {x=0, y=0, z=0},
-				expirationtime = 1,
-				size = 4,
-				collisiondetection = false,
-				vertical = false,
-				texture = "default_dirt.png",
-			})
-		--[[
-		minetest.add_particle({
-				pos = eye_pos2,
-				velocity = {x=0, y=0, z=0},
-				acceleration = {x=0, y=0, z=0},
-				expirationtime = 1,
-				size = 4,
-				collisiondetection = false,
-				vertical = false,
-				texture = "default_wood.png",
-			})
-		]]--
+			pos = pos1,
+			velocity = {x=0, y=0, z=0},
+			acceleration = {x=0, y=0, z=0},
+			expirationtime = 1,
+			size = 4,
+			collisiondetection = false,
+			vertical = false,
+			texture = "default_dirt.png",
+		})
 		local line_of_sight = minetest.line_of_sight(eye_pos, eye_pos2)
 		
 		--open voxel manip object
 		
-		local z_vec = vector.multiply(vector.normalize(vector.subtract(pos1, pos2)),-1)
+		local z_vec = vector.multiply(vector.normalize(vector.subtract(pos1, self.target_pos)),-1)
 		
 		local pathfind_bool = false
 		
 		
 		
-		if pos2 then
+		if self.target_pos then
 		local floorpos = vector.round(pos1)
 		
 		--avoid walking off cliffs
@@ -94,41 +80,43 @@ function ai_library.pathfind:find_path(self)
 		end
 		
 		--pathfind if target is too high
-		if vector.subtract(pos2,pos1).y > 1 then
+		if vector.subtract(self.target_pos,pos1).y > 1 then
 			pathfind_bool = true
 		end
-		
+		]]--
+		local line_of_sight = false
 		if line_of_sight == true and pathfind_bool ~= true then
 			self.path = nil
 			
-			local vec = vector.subtract(pos1, pos2)
+			local vec = vector.subtract(pos1, self.target_pos)
 			
 			self.yaw = math.atan(vec.z/vec.x)+ math.pi / 2
 	
-			if pos2.x > pos1.x then
+			if self.target_pos.x > pos1.x then
 				self.yaw = self.yaw+math.pi
 			end
 		else
-		
-			--if can't get goal then don't pathfind
-			if not pos2 then
-				path = self.path
-			else
-				--print("error")
-				path = minetest.find_path(pos1,pos2,10,1,2,"Dijkstra")
+			
+			local old_equals_new = false
+			
+			if self.old_target_pos then
+				old_equals_new = vector.equals(self.old_target_pos, self.target_pos)
 			end
 			
-			
-			
+			--if can't get goal then don't pathfind
+			if self.target_pos and old_equals_new == false then
+				print("finding new path")
+				self.path = minetest.find_path(pos1,self.target_pos,10,1,2,"Dijkstra")
+			end
 			
 			local vec_pos = vector.round(pos1)
 			
-			--local nearest_node(
-			
-			
+			if self.path == nil then
+				print("find if in node")
+			end
 			
 			local node_below = minetest.registered_nodes[minetest.get_node({x=vec_pos.x,y=vec_pos.y-1,z=vec_pos.z}).name].walkable
-			
+			--[[
 			--set position to closest node
 			if node_below == false then
 				--if minetest.registered_nodes[minetest.get_node({x=pos1.x,y=pos1.y-2,z=pos1.z}).name].walkable then
@@ -154,15 +142,20 @@ function ai_library.pathfind:find_path(self)
 					end
 				end
 				
-				path = minetest.find_path(vector.round(pos1),pos2,10,1,2,"Dijkstra")
+				self.path = minetest.find_path(vector.round(pos1),self.target_pos,10,1,2,"Dijkstra")
 			end
-			
+			]]--
 			--print(vec_pos.x,vec_pos.z, self.path[2].x,self.path[2].z)
+			
+			--{x=5,y=4,z=3}
+			
+			--{x=5,y=4,z=3} {x=6,y=4,z=3}
 			
 			--if in path step, delete it to not get stuck in place
 			if table.getn(self.path) > 1  then
-				if vec_pos.x == self.path[2].x and vec_pos.z == self.path[2].z then
-					--print("delete first step")
+				--print(dump(self.path))
+				if vector.equals(vec_pos, self.path[2]) then
+					print("delete first step")
 					--self.path[1] = nil
 					table.remove(self.path, 1)
 				end
@@ -187,11 +180,6 @@ function ai_library.pathfind:find_path(self)
 			
 			--debug pathfinding
 			local pos3 = nil
-			
-			--create a path internally
-			if path then
-				self.path = path
-			end
 			
 			--follow internal path
 			if self.path and table.getn(self.path) > 1 then
@@ -227,5 +215,8 @@ function ai_library.pathfind:find_path(self)
 				--print("failure in pathfinding")
 			end
 		end
+	--return table to nothing
+	elseif self.old_following ~= self.following then
+		self.path = {} 
 	end
 end
