@@ -29,7 +29,7 @@ function ai_library.pathfind:find_path(self)
 		--local path = nil
 		
 		
-		--DON'T FALL OFF STUFF
+		--try not to fall off nodes
 		local eye_pos = self.object:getpos()
 		eye_pos.y = eye_pos.y + self.overhang 
 		
@@ -39,7 +39,7 @@ function ai_library.pathfind:find_path(self)
 		else
 			eye_pos2.y = eye_pos2.y + self.target:get_luaentity().center + self.target:get_luaentity().overhang 
 		end
-		
+		--[[
 		minetest.add_particle({
 			pos = pos1,
 			velocity = {x=0, y=0, z=0},
@@ -50,6 +50,7 @@ function ai_library.pathfind:find_path(self)
 			vertical = false,
 			texture = "default_dirt.png",
 		})
+		]]--
 		local line_of_sight = minetest.line_of_sight(eye_pos, eye_pos2)
 		
 		--open voxel manip object
@@ -111,14 +112,14 @@ function ai_library.pathfind:find_path(self)
 			
 			--if can't get goal then don't pathfind
 			if (self.target_pos and old_equals_new == false) or table.getn(self.path) == 0  then
-				print("finding new path")
+				--print("finding new path")
 				self.path = minetest.find_path(pos1,self.target_pos,10,1,2,"Dijkstra")
 			end
 			
 			local vec_pos = vector.round(pos1)
 			
 			if self.path == nil then
-				print("find if in node")
+				--print("find if in node")
 			end
 			
 			local node_below = minetest.registered_nodes[minetest.get_node({x=vec_pos.x,y=vec_pos.y-1,z=vec_pos.z}).name].walkable
@@ -160,7 +161,7 @@ function ai_library.pathfind:find_path(self)
 			if table.getn(self.path) > 1  then
 				--print(dump(self.path))
 				if vector.equals(vec_pos, self.path[2]) then
-					print("delete first step")
+					--print("delete first step")
 					--self.path[1] = nil
 					table.remove(self.path, 1)
 				end
