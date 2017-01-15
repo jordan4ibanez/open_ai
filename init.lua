@@ -166,6 +166,7 @@ open_ai.register_mob = function(name,def)
 		scale_size   = 1,
 		drops = def.drops,
 		hit_color = def.hit_color and def.hit_color or "CC0000",
+		stepheight = 1, 
 		
 		
 		--Pathfinding variables
