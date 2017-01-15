@@ -12,10 +12,14 @@ function ai_library.behavior:decision(self,dtime)
 	self.behavior_timer = self.behavior_timer + dtime
 	
 	--debug test to change behavior
-	if self.following == false and self.behavior_timer >= self.behavior_timer_goal and self.leashed == false then
-		self.state = math.random(0,1) --2 is needed for all testing
+	if (self.following == false and self.behavior_timer >= self.behavior_timer_goal and self.leashed == false) or self.sitting == true then
 		
 		
+		if self.sitting == true then
+			self.state = 0
+		else
+			self.state = math.random(0,1) --2 is needed for all testing
+		end
 		
 		--normal direction changing, or if jump_only, only change direction on ground
 		if self.jump_only ~= true or (self.jump_only == true and self.vel.y == 0) then

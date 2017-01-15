@@ -24,6 +24,8 @@ function ai_library.interaction:on_rightclick(self, clicker)
 	
 	self.ai_library.interaction:taming(self,clicker)
 	
+	self.ai_library.interaction:sit(self,clicker)
+	
 	--undo leash
 	if self.leashed == true then
 		self.leashed = false
@@ -60,8 +62,8 @@ function ai_library.interaction:ride_attempt(self,clicker)
 		return
 	end
 	--initialize riding the horse
-	if self.rideable == true and self.tamed == true and clicker:get_player_name() == self.owner_name then
-		if self.attached == nil and self.leashed == false then
+	if self.rideable == true and self.tamed == true and clicker:get_player_name() == self.owner_name and self.sitting ~= true then
+		if self.attached == nil and self.leashed == false and clicker:get_player_control().sneak ~= true then
 			self.attached = clicker
 			self.attached_name = clicker:get_player_name()
 			self.attached:set_attach(self.object, "body", {x=0, y=self.visual_offset, z=0}, {x=0, y=self.automatic_face_movement_dir+90, z=0}) -- "body" bone should really be a variable defined in the mob lua
@@ -89,6 +91,8 @@ function ai_library.interaction:ride_attempt(self,clicker)
 		
 	end
 end
+
+--how a mob is tamed
 function ai_library.interaction:taming(self,clicker)
 	--disalow mobs that can't be tamed or mobs that are already tamed
 	if not self.tameable or (self.tameable == false or self.tamed == true) then 
@@ -110,6 +114,19 @@ function ai_library.interaction:taming(self,clicker)
 		local pos = self.object:getpos()
 		
 		self.ai_library.aesthetic:tamed(self)
+	end
+end
+
+--allow owner to make mob sit
+function ai_library.interaction:sit(self,clicker)
+	if self.owner_name == clicker:get_player_name() and clicker:get_player_control().sneak == true then
+		if self.sitting == nil then
+			self.sitting = true
+			minetest.chat_send_player(clicker:get_player_name(), "Mob is sitting!")
+		else
+			self.sitting = nil
+			minetest.chat_send_player(clicker:get_player_name(), "Mob is free!")
+		end
 	end
 end
 

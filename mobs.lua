@@ -131,7 +131,7 @@ open_ai.register_mob("big_shadow",{
 	spawn_node  = "default:water_source",
 	
 	--safari ball variables
-	ball_color = "blue",--color in hex, can be any color
+	ball_color = "ee7600",--color in hex, can be any color
 	
 	--what a mob drops on death
 	drops = "default:coral_orange",
