@@ -7,12 +7,24 @@ function ai_library.interaction:on_step(self)
 	self.ai_library.interaction:check_to_follow(self)
 end
 --what happens when you hit a mob
-function ai_library.interaction:on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
+function ai_library.interaction:on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir, damage)
 	if self.user_defined_on_punch then
-		self.user_defined_on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
+		self.user_defined_on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir, damage)
 	end
 	self.ai_library.interaction:knockback(self,puncher,dir)
-	self.ai_library.interaction:on_die(self,puncher,dir,tool_capabilities,time_from_last_punch)
+
+	local hitpoints = self.object:get_hp()
+
+	if damage ~= nil then
+		hitpoints = hitpoints - damage
+	end
+
+	if hitpoints <= 0 then
+		self.ai_library.aesthetic:on_die(self)
+		self.ai_library.interaction:on_die(self, puncher, time_from_last_punch, tool_capabilities, dir, damage)
+	end
+
+	return false
 end
 
 --what happens when you right click a mob
@@ -144,33 +156,29 @@ function ai_library.interaction:knockback(self,puncher,dir)
 end
 
 --on die
-function ai_library.interaction:on_die(self,puncher,dir,tool_capabilities,time_from_last_punch)
-	if self.object:get_hp() <= 0 then
-		self.ai_library.aesthetic:on_die(self)
-	
-		--return player back to normal scale
-		self.ai_library.interaction:normalize(self)
-		
-		local pos = self.object:getpos()
-		local pos2 = puncher:getpos()
-		
-		--throw item at player
-		--multiply dir times vector.distance
-		local object = minetest.add_item(pos,self.drops)
-					
-		if object then
-			local vec = vector.multiply(vector.multiply(dir,-1),vector.distance(pos,pos2))
-		
-			vec.y = vec.y * 3
-		
-			object:setvelocity(vec)
-		end
-		
-		if self.user_defined_on_die then
-			self.user_defined_on_die(self, puncher, time_from_last_punch, tool_capabilities, dir)
-		end
+function ai_library.interaction:on_die(self, puncher, time_from_last_punch, tool_capabilities, dir, damage)
+
+	--return player back to normal scale
+	self.ai_library.interaction:normalize(self)
+
+	local pos = self.object:getpos()
+	local pos2 = puncher:getpos()
+
+	--throw item at player
+	--multiply dir times vector.distance
+	local object = minetest.add_item(pos, self.drops)
+
+	if object then
+		local vec = vector.multiply(vector.multiply(dir, -1), vector.distance(pos, pos2))
+		vec.y = vec.y * 3
+		object:setvelocity(vec)
+	end
+
+	if self.user_defined_on_die then
+		self.user_defined_on_die(self, puncher, time_from_last_punch, tool_capabilities, dir)
 	end
 end
+
 --return player visuals to normal
 function ai_library.interaction:normalize(self)
 	if self.attached then

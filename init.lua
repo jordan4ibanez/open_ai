@@ -190,8 +190,8 @@ open_ai.register_mob = function(name,def)
 		get_staticdata = function(self)
 			return(self.ai_library.activation:getstaticdata(self))
 		end,
-		on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
-			self.ai_library.interaction:on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
+		on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir, damage)
+			return self.ai_library.interaction:on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir, damage)
 		end,
 		on_rightclick = function(self, clicker) 
 			self.ai_library.interaction:on_rightclick(self, clicker)
